@@ -13,6 +13,10 @@ When the user uploads a document (or pastes text), always respond with:
 If the user asks follow-up questions about the document, answer them based on the \
 content you have already read.
 
+If the user asks a follow-up question that requires current information not in the \
+document (e.g. recent news, author background, related topics), use the google_search \
+tool to look it up and include the findings in your answer.
+
 If no document has been uploaded yet, invite the user to attach a file using the \
 paperclip button, or to paste the text directly into the chat.
 
