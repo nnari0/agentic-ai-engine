@@ -171,9 +171,18 @@ cp .env.example .env
 
 Required variables:
 
-- `GOOGLE_APPLICATION_CREDENTIALS` — path to your ADC credentials file
-- `GOOGLE_CLOUD_PROJECT` — your GCP project ID
-- `GOOGLE_CLOUD_STORAGE_BUCKET` — your Cloud Storage bucket name
+| Variable | Description |
+|---|---|
+| `GOOGLE_APPLICATION_CREDENTIALS` | Path to your ADC credentials file |
+| `GOOGLE_CLOUD_PROJECT` | Your GCP project ID |
+| `GOOGLE_CLOUD_STORAGE_BUCKET` | Your Cloud Storage bucket name |
+
+Optional variables:
+
+| Variable | Default | Description |
+|---|---|---|
+| `DEFAULT_LLM_MODEL` | `gemini-2.5-flash` | Gemini model used by all agents |
+| `MCP_FETCH_URL` | _(empty)_ | SSE endpoint of the MCP Web Fetch server — set to `http://localhost:8002/sse` to enable web-page summarization |
 
 ## 6. Run the Application locally
 
@@ -183,8 +192,78 @@ uvicorn agentic_ai_main:app --reload --port 8000
 
 The application will be available at **http://localhost:8000**. The chat interface is served at the root path `/`.
 
-Your Welcome agent is waiting for you. 
-You can also ask it how to prepare 
-for the lecture :-)
+Your Welcome agent is waiting for you.
+You can also ask it how to prepare for the lecture :-)
 
+---
+
+## 7. Available Agents
+
+### 👋 Welcome Agent (`greeting_agent`)
+
+The default agent. It greets students, points to the README for setup help, and recommends preparation resources for the lecture.
+
+### 📝 Summarizer Agent (`summarizer_agent`)
+
+Summarizes text documents and web pages. Switch to it by clicking **Summarizer Agent** in the sidebar.
+
+**Capabilities:**
+
+| Input | How |
+|---|---|
+| Text file (`.txt`, `.md`, `.csv`, …) | Click the **paperclip** button that appears in the input bar |
+| PDF or image | Same paperclip button — Gemini reads them natively |
+| Web page | Paste a URL into the chat (requires the MCP Fetch server — see §8) |
+| Pasted text | Type or paste directly into the chat |
+
+For every document the agent returns:
+
+1. **Title / Topic** — what the document is about
+2. **Key Points** — the most important facts (bullet list)
+3. **Summary** — a concise paragraph
+4. **Takeaway** — the single most important insight
+
+The agent also has **Google Search** enabled, so you can ask follow-up questions that require current information (e.g. *"Who is the author?"*, *"What has changed since this was published?"*).
+
+---
+
+## 8. MCP Web Fetch Server
+
+The MCP Fetch server is a standalone microservice that exposes a `fetch_page` tool over the [Model Context Protocol](https://modelcontextprotocol.io/). The Summarizer agent connects to it to download and clean web pages before summarizing them.
+
+### Run with Docker (recommended)
+
+```bash
+# Build the image
+docker build -t mcp-fetch ./mcp_servers/fetch
+
+# Run on port 8002
+docker run -p 8002:8002 mcp-fetch
+```
+
+### Run locally (without Docker)
+
+```bash
+# Install dependencies (already included via uv sync)
+pip install "mcp[cli]>=1.0.0" httpx "beautifulsoup4>=4.12.0" "lxml>=5.0.0"
+
+# Start the server
+python mcp_servers/fetch/server.py
+```
+
+The server listens on `http://0.0.0.0:8002` and exposes the SSE endpoint at `/sse`.
+
+### Connect the Summarizer agent
+
+Add the following line to your `.env` and restart the main application:
+
+```env
+MCP_FETCH_URL=http://localhost:8002/sse
+```
+
+Once set, you can ask the Summarizer agent to summarize any public URL:
+
+> *"Please summarize https://example.com/article"*
+
+> **Note:** The main application starts without the MCP server. The `fetch_page` tool is only available when `MCP_FETCH_URL` is configured and the server is reachable.
 
