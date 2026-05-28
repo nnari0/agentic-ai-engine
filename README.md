@@ -223,7 +223,31 @@ For every document the agent returns:
 3. **Summary** — a concise paragraph
 4. **Takeaway** — the single most important insight
 
-The agent also has **Google Search** enabled, so you can ask follow-up questions that require current information (e.g. *"Who is the author?"*, *"What has changed since this was published?"*).
+You can also ask follow-up questions about the document (e.g. *"Who is the author?"*, *"What is the main argument?"*). If the MCP Fetch server is running, the agent can additionally fetch URLs you share in the chat.
+
+### 🔬 Research Team (`research_coordinator`)
+
+A multi-agent team that researches a topic by fetching live web sources and compiling the findings into a structured report. Switch to it by clicking **Research Agent** in the sidebar.
+
+**How it works:**
+
+```
+research_coordinator  (orchestrator)
+ ├── web_researcher   → fetches web pages via the MCP Fetch server
+ └── report_writer    → compiles findings into a Markdown report
+```
+
+**Example prompt:**
+
+> *"Research the impact of large language models on software engineering"*
+
+The coordinator will:
+1. Identify 2–4 authoritative URLs
+2. Delegate each fetch to the `web_researcher`
+3. Pass all findings to the `report_writer`
+4. Return a fully sourced Markdown report
+
+> **Note:** Web fetching requires the MCP Fetch server (see §8). Without it the coordinator falls back to the model's training knowledge.
 
 ---
 
@@ -253,7 +277,7 @@ python mcp_servers/fetch/server.py
 
 The server listens on `http://0.0.0.0:8002` and exposes the SSE endpoint at `/sse`.
 
-### Connect the Summarizer agent
+### Connect agents to the server
 
 Add the following line to your `.env` and restart the main application:
 
@@ -261,9 +285,11 @@ Add the following line to your `.env` and restart the main application:
 MCP_FETCH_URL=http://localhost:8002/sse
 ```
 
-Once set, you can ask the Summarizer agent to summarize any public URL:
+Both the **Summarizer** and the **Research Team** will then have access to `fetch_page`. Example prompts:
 
-> *"Please summarize https://example.com/article"*
+> *"Please summarize https://example.com/article"*  (Summarizer agent)
+
+> *"Research recent advances in quantum error correction"*  (Research agent)
 
 > **Note:** The main application starts without the MCP server. The `fetch_page` tool is only available when `MCP_FETCH_URL` is configured and the server is reachable.
 
