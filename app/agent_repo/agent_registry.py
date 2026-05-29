@@ -10,7 +10,7 @@ from google.adk.agents import LlmAgent
 from google.adk.tools import AgentTool
 
 from app.agent_repo.greeting_agent import greeting_agent
-from app.agent_repo.research_team import research_coordinator
+from app.agent_repo.orchestrator import research_orchestrator
 from app.agent_repo.summarizer_agent import summarizer_agent
 
 """
@@ -38,9 +38,9 @@ AGENT_REGISTRY: dict[str, dict] = {
         "description": "Upload a text document and get a structured summary.",
         "icon": "📝",
     },
-    "research_coordinator": {
-        "agent": research_coordinator,
-        "label": "Research",
+    "research_orchestrator": {
+        "agent": research_orchestrator,
+        "label": "Research Orchestrator",
         "description": "Give a topic and get a fully sourced research report.",
         "icon": "🔬",
     },

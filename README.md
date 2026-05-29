@@ -225,29 +225,29 @@ For every document the agent returns:
 
 You can also ask follow-up questions about the document (e.g. *"Who is the author?"*, *"What is the main argument?"*). If the MCP Fetch server is running, the agent can additionally fetch URLs you share in the chat.
 
-### 🔬 Research Team (`research_coordinator`)
+### 🔬 Research Orchestrator (`research_orchestrator`)
 
-A multi-agent team that researches a topic by fetching live web sources and compiling the findings into a structured report. Switch to it by clicking **Research Agent** in the sidebar.
+A multi-agent pipeline that researches a topic by fetching live web sources and compiling the findings into a structured report. Switch to it by clicking **Research Orchestrator** in the sidebar.
 
 **How it works:**
 
 ```
-research_coordinator  (orchestrator)
- ├── web_researcher   → fetches web pages via the MCP Fetch server
- └── report_writer    → compiles findings into a Markdown report
+research_orchestrator  (orchestrator)
+ ├── researcher_agent  → fetches web pages via the MCP Fetch server
+ └── writer_agent      → compiles findings into a Markdown report
 ```
 
 **Example prompt:**
 
 > *"Research the impact of large language models on software engineering"*
 
-The coordinator will:
+The orchestrator will:
 1. Identify 2–4 authoritative URLs
-2. Delegate each fetch to the `web_researcher`
-3. Pass all findings to the `report_writer`
+2. Delegate each fetch to `researcher_agent`
+3. Pass all findings to `writer_agent`
 4. Return a fully sourced Markdown report
 
-> **Note:** Web fetching requires the MCP Fetch server (see §8). Without it the coordinator falls back to the model's training knowledge.
+> **Note:** Web fetching requires the MCP Fetch server (see §8). Without it the orchestrator falls back to the model's training knowledge.
 
 ---
 
@@ -285,11 +285,11 @@ Add the following line to your `.env` and restart the main application:
 MCP_FETCH_URL=http://localhost:8002/sse
 ```
 
-Both the **Summarizer** and the **Research Team** will then have access to `fetch_page`. Example prompts:
+Both the **Summarizer** and the **Research Orchestrator** will then have access to `fetch_page`. Example prompts:
 
 > *"Please summarize https://example.com/article"*  (Summarizer agent)
 
-> *"Research recent advances in quantum error correction"*  (Research agent)
+> *"Research recent advances in quantum error correction"*  (Research Orchestrator)
 
 > **Note:** The main application starts without the MCP server. The `fetch_page` tool is only available when `MCP_FETCH_URL` is configured and the server is reachable.
 
