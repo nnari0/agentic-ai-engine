@@ -131,3 +131,71 @@ async def delete_rag_file(
     if not rag_engine_handler.available:
         return {"status": "error", "message": "RAG engine not available"}
     return await rag_engine_handler.delete_file(file_name)
+
+
+# ── Session state inspection ────────────────────────────────────────────
+
+
+@agent_router.get("/session/state")
+async def get_session_state(agent_id: str = Query(..., description="Agent ID")) -> dict:
+    """Return the current session state (scratchpad) for an agent.
+
+    The state is the key-value store the agent reads and writes during a session.
+    It is populated by the save_to_state / load_from_state tools.
+    """
+    app_name = f"{agent_id}_app"
+    session_id = session_handler._agent_session_mapping.get(agent_id)
+    if not session_id:
+        return {"state": {}, "session_id": None}
+
+    session = await session_handler.service.get_session(
+        app_name=app_name,
+        user_id=config.USER_ID,
+        session_id=session_id,
+    )
+    if session is None:
+        return {"state": {}, "session_id": session_id}
+
+    return {"state": session.state, "session_id": session_id}
+
+
+@agent_router.get("/session/events")
+async def get_session_events(
+    agent_id: str = Query(..., description="Agent ID"),
+    limit: int = Query(20, description="Maximum number of recent events to return"),
+) -> dict:
+    """Return recent session events (conversation history) for an agent.
+
+    Each event captures one turn: a user message, an agent response, or a
+    tool call/result.  This endpoint is useful for investigating the session
+    flow and understanding what happened in a conversation.
+    """
+    app_name = f"{agent_id}_app"
+    session_id = session_handler._agent_session_mapping.get(agent_id)
+    if not session_id:
+        return {"events": [], "session_id": None}
+
+    session = await session_handler.service.get_session(
+        app_name=app_name,
+        user_id=config.USER_ID,
+        session_id=session_id,
+    )
+    if session is None:
+        return {"events": [], "session_id": session_id}
+
+    events = []
+    for ev in (session.events or [])[-limit:]:
+        text = ""
+        if ev.content and ev.content.parts:
+            text = " ".join(p.text for p in ev.content.parts if p.text).strip()
+        state_delta = {}
+        if ev.actions and ev.actions.state_delta:
+            state_delta = dict(ev.actions.state_delta)
+        events.append({
+            "author": ev.author,
+            "text": text[:500] if text else "",
+            "state_delta": state_delta,
+            "timestamp": ev.timestamp,
+        })
+
+    return {"events": events, "session_id": session_id}
