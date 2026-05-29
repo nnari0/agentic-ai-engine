@@ -369,6 +369,47 @@ header .status .dot.connected { background: #22c55e; }
   opacity: 0.6;
 }
 
+/* ── Memory search bar ────────────────────────────────────── */
+.memory-search-bar {
+  display: flex;
+  gap: 6px;
+  padding: 10px 14px 4px;
+}
+
+.memory-search-bar input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  background: var(--bg);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.memory-search-bar input:focus {
+  border-color: var(--primary);
+}
+
+.memory-search-bar button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 8px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.memory-search-bar button:hover {
+  background: var(--primary-hover);
+}
+
 /* ── Memory list ──────────────────────────────────────────── */
 .memory-list {
   padding: 8px 14px 14px;
@@ -382,6 +423,13 @@ header .status .dot.connected { background: #22c55e; }
   font-size: 0.82rem;
   color: var(--muted);
   text-align: center;
+}
+
+.memory-count {
+  padding: 6px 14px 2px;
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-style: italic;
 }
 
 .memory-item {

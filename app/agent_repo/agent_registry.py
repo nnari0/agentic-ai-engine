@@ -37,6 +37,7 @@ AGENT_REGISTRY: dict[str, dict] = {
         "label": "Summarizer",
         "description": "Upload a text document and get a structured summary.",
         "icon": "📝",
+        "has_memory": True,
     },
     "research_orchestrator": {
         "agent": research_orchestrator,
@@ -61,9 +62,7 @@ def list_agents() -> list[dict]:
             "label": meta["label"],
             "description": meta["description"],
             "icon": meta["icon"],
-            #"has_artifacts": has_artifact_tools(meta["agent"]),
-            #"has_memory": has_memory_tools(meta["agent"]),
-            #"has_rag": has_rag_tools(meta["agent"]),
+            "has_memory": meta.get("has_memory", False),
         }
         for agent_id, meta in AGENT_REGISTRY.items()
     ]

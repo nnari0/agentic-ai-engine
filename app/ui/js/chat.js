@@ -41,6 +41,7 @@ let pendingFiles = [];  // { name, size, base64, mime }
 let isFirstConnect = true;
 let reconnectAttempts = 0;
 let pendingAgentSwitch = false;  // true when the user explicitly requested a switch
+let _allMemories = [];           // full list fetched from backend; filtered client-side
 const MAX_RECONNECT_ATTEMPTS = 10;
 const BASE_RECONNECT_DELAY = 1000;  // ms
 
@@ -178,40 +179,75 @@ function renderArtifactList(artifacts) {
 }
 
 function artifactIcon(filename) {
-  if (filename.endsWith(".pdf")) return "\uD83D\uDCC4";
-  if (filename.endsWith(".md"))  return "\uD83D\uDCDD";
-  if (filename.endsWith(".txt")) return "\uD83D\uDCC3";
-  return "\uD83D\uDCCE";
+  if (filename.endsWith(".pdf")) return "📄";
+  if (filename.endsWith(".md"))  return "📝";
+  if (filename.endsWith(".txt")) return "📃";
+  return "📎";
 }
 
-// ── Memory listing ──────────────────────────────────────────────────
+// ── Memory listing ──────────────────────────────────────────
+// All memories are fetched once from the backend and cached in _allMemories.
+// The search input filters that list client-side (substring match, case-insensitive).
+// This avoids the scope-mismatch issues of the Vertex AI semantic search API.
 
 async function loadMemories() {
   if (!selectedAgentId) return;
+  _allMemories = [];
+  var url = "/api/v1/memories?agent_id=" + encodeURIComponent(selectedAgentId);
+  memoryListEl.innerHTML = '<p class="memory-empty">Loading...</p>';
   try {
-    var resp = await fetch("/api/v1/memories?agent_id=" + encodeURIComponent(selectedAgentId));
+    var resp = await fetch(url);
     var data = await resp.json();
-    renderMemoryList(data.memories || []);
+    if (data.error && (!data.memories || data.memories.length === 0)) {
+      memoryListEl.innerHTML = '<p class="memory-empty">Memory bank not available.</p>';
+      return;
+    }
+    _allMemories = data.memories || [];
+    filterMemories();
   } catch (e) {
     console.error("Failed to load memories:", e);
-    renderMemoryList([]);
+    memoryListEl.innerHTML = '<p class="memory-empty">Failed to load memories.</p>';
   }
 }
 
-function renderMemoryList(memories) {
+function filterMemories() {
+  var searchInput = document.getElementById("memory-search-input");
+  var query = searchInput ? searchInput.value.trim().toLowerCase() : "";
+  var filtered = query
+    ? _allMemories.filter(function (m) { return (m.text || "").toLowerCase().includes(query); })
+    : _allMemories;
+  renderMemoryList(filtered, query);
+}
+
+function renderMemoryList(memories, query) {
   memoryListEl.innerHTML = "";
   if (memories.length === 0) {
-    memoryListEl.innerHTML = '<p class="memory-empty">No memory facts yet.</p>';
+    var msg = query
+      ? 'No memories matching "' + escapeHtml(query) + '".'
+      : "No memories stored yet.";
+    memoryListEl.innerHTML = '<p class="memory-empty">' + msg + '</p>';
     return;
   }
+
+  var label = query
+    ? "Filtered: " + memories.length + " of " + _allMemories.length
+    : memories.length + " memor" + (memories.length === 1 ? "y" : "ies");
+  var header = document.createElement("div");
+  header.className = "memory-count";
+  header.textContent = label;
+  memoryListEl.appendChild(header);
+
   memories.forEach(function (m) {
     var item = document.createElement("div");
     item.className = "memory-item";
-    var timeHtml = m.timestamp ? '<div class="memory-time">' + escapeHtml(formatTimestamp(m.timestamp)) + '</div>' : '';
+    var snippet = m.text && m.text.length > 300 ? m.text.slice(0, 300) + "..." : (m.text || "");
+    var timeHtml = m.timestamp
+      ? '<div class="memory-time">' + escapeHtml(formatTimestamp(m.timestamp)) + '</div>'
+      : '';
     item.innerHTML =
-      '<span class="memory-icon">\uD83D\uDCA1</span>' +
+      '<span class="memory-icon">🧠</span>' +
       '<div class="memory-content">' +
-        '<div class="memory-fact">' + escapeHtml(m.text) + '</div>' +
+        '<div class="memory-fact">' + escapeHtml(snippet) + '</div>' +
         timeHtml +
       '</div>';
     memoryListEl.appendChild(item);
@@ -260,7 +296,7 @@ function renderRagFileList(files) {
     item.className = "rag-file-item";
     var sizeHtml = f.size_bytes ? '<div class="rag-file-size">' + formatBytes(f.size_bytes) + '</div>' : '';
     item.innerHTML =
-      '<span class="rag-file-icon">\uD83D\uDCC4</span>' +
+      '<span class="rag-file-icon">📄</span>' +
       '<div class="rag-file-info">' +
         '<div class="rag-file-name" title="' + escapeHtml(f.display_name || f.name) + '">' + escapeHtml(f.display_name || f.name) + '</div>' +
         sizeHtml +
@@ -342,13 +378,13 @@ function connect() {
     sendBtn.disabled = true;
 
     if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-      statusText.textContent = "Disconnected \u2013 please reload the page";
+      statusText.textContent = "Disconnected – please reload the page";
       return;
     }
 
     var delay = Math.min(BASE_RECONNECT_DELAY * Math.pow(2, reconnectAttempts), 30000);
     reconnectAttempts++;
-    statusText.textContent = "Disconnected \u2013 reconnecting in " + Math.round(delay / 1000) + "s\u2026";
+    statusText.textContent = "Disconnected – reconnecting in " + Math.round(delay / 1000) + "s…";
     setTimeout(connect, delay);
   };
 
@@ -388,7 +424,7 @@ function handleServerMessage(data) {
       pendingAgentSwitch = false;
       var agentMeta = agents.find(function (a) { return a.id === data.agent_id; });
       var name = agentMeta ? agentMeta.label : data.agent_id;
-      appendMessage("system", "System", "\uD83E\uDD16 Switched to " + name + " Agent");
+      appendMessage("system", "System", "🤖 Switched to " + name + " Agent");
 
       typingEl.classList.add("visible");
       sendBtn.disabled = true;
@@ -450,7 +486,7 @@ function sendMessage() {
   // Build display text
   var displayText = text;
   if (hasFiles) {
-    var names = pendingFiles.map(function (f) { return "\uD83D\uDCCE " + f.name; }).join("\n");
+    var names = pendingFiles.map(function (f) { return "📎 " + f.name; }).join("\n");
     displayText = hasFiles && text ? names + "\n\n" + text : names;
   }
   appendMessage("user", "You", displayText);
@@ -488,7 +524,7 @@ function appendMessage(role, author, text, agentId) {
   if (role === "agent") {
     var lookupId = agentId || selectedAgentId;
     var agentMeta = agents.find(function (a) { return a.id === lookupId; });
-    var icon = agentMeta ? agentMeta.icon : "\uD83E\uDD16";
+    var icon = agentMeta ? agentMeta.icon : "🤖";
     iconHtml = '<span class="message-icon">' + icon + '</span>';
   } else if (role === "user") {
     iconHtml = '<span class="message-icon">😊</span>';
@@ -532,7 +568,7 @@ function friendlyAgentName(author) {
   return meta ? meta.label + " Agent" : author.replace(/_/g, " ").replace(/\b\w/g, function (c) { return c.toUpperCase(); });
 }
 
-// ── Keyboard shortcut ───────────────────────────────────────
+// ── Keyboard shortcuts ──────────────────────────────────────
 
 userInput.addEventListener("keydown", function (e) {
   if (e.key === "Enter" && !e.shiftKey) {
@@ -540,6 +576,21 @@ userInput.addEventListener("keydown", function (e) {
     sendMessage();
   }
 });
+
+// Memory search: button click, Enter key, and live typing all filter the list
+var memorySearchInput = document.getElementById("memory-search-input");
+var memorySearchBtn   = document.getElementById("memory-search-btn");
+
+if (memorySearchBtn) {
+  memorySearchBtn.addEventListener("click", function () { filterMemories(); });
+}
+if (memorySearchInput) {
+  memorySearchInput.addEventListener("input",   function () { filterMemories(); });
+  memorySearchInput.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); filterMemories(); }
+  });
+}
+
 // ── File upload handling ───────────────────────────────────────
 
 fileInput.addEventListener("change", function () {
@@ -593,6 +644,7 @@ function formatFileSize(bytes) {
   if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KB";
   return (bytes / 1048576).toFixed(1) + " MB";
 }
+
 // ── New session ─────────────────────────────────────────────
 
 var confirmModal  = document.getElementById("confirm-modal");
@@ -612,7 +664,7 @@ modalConfirm.addEventListener("click", function () {
   confirmModal.classList.remove("visible");
   ws.send(JSON.stringify({ action: "new_session" }));
   chatContainer.innerHTML = "";
-  appendMessage("system", "System", "\uD83D\uDD04 Starting a new session\u2026");
+  appendMessage("system", "System", "🔄 Starting a new session...");
 });
 
 confirmModal.addEventListener("click", function (e) {

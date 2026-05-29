@@ -76,25 +76,28 @@ async def download_artifact(
 @agent_router.get("/memories")
 async def get_memories(
     agent_id: str = Query(..., description="Agent ID"),
-    query: str = Query("*", description="Search query for memory facts"),
 ) -> dict:
-    """Return memory facts for the given agent's user scope."""
-    app_name = f"{agent_id}_app"
+    """Return all stored memory facts for the given agent, sorted newest first."""
     if memory_bank_handler.service is None:
         return {"memories": [], "error": "Memory bank not available"}
     try:
-        result = await memory_bank_handler.service.search_memory(
-            app_name=app_name,
-            user_id=config.USER_ID,
-            query=query,
+        svc = memory_bank_handler.service
+        import vertexai
+        client = vertexai.Client(
+            project=svc._project,
+            location=svc._location,
+        ).aio
+        pager = await client.agent_engines.memories.list(
+            name=f"reasoningEngines/{svc._agent_engine_id}",
+            config={"order_by": "update_time desc", "page_size": 50},
         )
-        facts = [
-            {
-                "text": entry.content.parts[0].text if entry.content and entry.content.parts else "",
-                "timestamp": entry.timestamp or "",
-            }
-            for entry in (result.memories or [])
-        ]
+        facts = []
+        async for mem in pager:
+            ts = getattr(mem, "update_time", None) or getattr(mem, "create_time", None)
+            facts.append({
+                "text": mem.fact or "",
+                "timestamp": ts.isoformat() if ts else "",
+            })
         return {"memories": facts}
     except Exception as e:
         return {"memories": [], "error": str(e)}
