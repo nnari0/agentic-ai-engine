@@ -15,7 +15,7 @@ ENV GOOGLE_CLOUD_PROJECT=""
 ENV GOOGLE_CLOUD_LOCATION=europe-north1
 
 # Optional overrides
-ENV CRITIC_LLM_MODEL=gemini-2.0-flash
+ENV CRITIC_LLM_MODEL=gemini-2.5-flash
 ENV A2A_HOST=0.0.0.0
 ENV A2A_PORT=8001
 # Set AGENT_URL to the public URL when deploying (e.g. your HuggingFace Space URL)

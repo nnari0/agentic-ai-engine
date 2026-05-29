@@ -33,7 +33,7 @@ Summary to evaluate:
 {summary}
 """
 
-_MODEL = os.getenv("CRITIC_LLM_MODEL", "gemini-2.0-flash")
+_MODEL = os.getenv("CRITIC_LLM_MODEL", "gemini-2.5-flash")
 
 # Uses Application Default Credentials (GOOGLE_APPLICATION_CREDENTIALS).
 # Set GOOGLE_CLOUD_PROJECT and GOOGLE_CLOUD_LOCATION in the environment.

@@ -368,3 +368,110 @@ The Summarizer will now call the Critic after every summary and display the eval
 
 > **Note:** The main application works without the critic server. The `critique_summary` tool returns a graceful skip message when `CRITIC_A2A_URL` is empty or the server is unreachable.
 
+---
+
+## 10. Long-Term Memory (Vertex AI Memory Bank)
+
+The Summarizer agent can remember past conversations across sessions using the **Vertex AI Memory Bank**. Every time the agent finishes a turn it saves the conversation to a persistent memory store. On the next session, relevant past conversations are automatically surfaced to the agent and, when needed, the agent can also search memory explicitly.
+
+### How it works
+
+```
+Session A (today)
+  user: "Summarize this ML paper…"
+  agent: produces summary → saves session to Memory Bank ✓
+
+Session B (tomorrow, new session)
+  agent startup: preload_memory injects relevant past conversations into context
+  user: "Do you remember the ML paper we discussed?"
+  agent: recalls the summary from Session A ✓
+
+  user: "Find everything we discussed about transformers"
+  agent: calls load_memory("transformers") → returns matching past turns ✓
+```
+
+Two memory tools cooperate:
+
+| Tool | When it runs | What it does |
+|---|---|---|
+| `preload_memory` | Automatically at the start of every turn | Injects the most relevant past conversations silently into the model context — no user action needed |
+| `load_memory` | When the agent decides it is useful | Explicit semantic search over the Memory Bank — returns matching past conversations as text |
+
+The session is saved to the Memory Bank automatically after every agent turn via the `after_agent_callback`.
+
+### Setup
+
+The Memory Bank runs on **Vertex AI Agent Engine**, which is only available in `us-central1` (as of 2025), even if your main project uses a different region.
+
+**1. Enable the required API**
+
+```bash
+gcloud services enable aiplatform.googleapis.com --project=<PROJECT_ID>
+```
+
+**2. Add Memory Bank variables to `.env`**
+
+```env
+# Region for the Memory Bank — must be us-central1
+MEMORY_BANK_LOCATION=us-central1
+
+# Agent Engine backing the Memory Bank.
+# Leave empty on first start — the app creates one automatically and logs its ID.
+# Copy the ID here afterwards to avoid re-creating it on every restart.
+AGENT_ENGINE_ID=
+```
+
+**3. Start the app and copy the Agent Engine ID**
+
+On the very first start with an empty `AGENT_ENGINE_ID` the app provisions a new Agent Engine (~60 s). The ID is printed in the server logs:
+
+```
+agent_engine_id=projects/my-project/locations/us-central1/reasoningEngines/1234567890
+```
+
+Copy this value into `.env`:
+
+```env
+AGENT_ENGINE_ID=1234567890
+```
+
+Subsequent starts will reuse the existing engine (< 1 s).
+
+### Example conversation
+
+Open the **Summarizer** agent and have a multi-session conversation:
+
+**Session 1** — Upload or paste a document:
+
+> *"Please summarize the following paper: [paste text]"*
+
+The agent produces a structured summary, the A2A Critic evaluates it, and the full conversation is saved to the Memory Bank automatically.
+
+**Session 2** — Start a fresh session (reload the page or switch away and back):
+
+> *"What did we work on last time?"*
+
+The agent replies based on the automatically injected past context — no need to repeat the document.
+
+> *"Do you remember the section about model architecture?"*
+
+The agent searches memory explicitly and surfaces the relevant paragraph from the previous session.
+
+> *"How many documents have we summarized in total?"*
+
+The agent can call `list_state` for the current session or `load_memory` for cross-session history.
+
+### Session inspection (debug)
+
+Two REST endpoints let you inspect the live session state without touching the UI:
+
+```bash
+# Current session state variables (last_topic, docs_summarized, …)
+curl "http://localhost:8000/api/v1/session/state?agent_id=summarizer_agent"
+
+# Last 20 events in the session (author, text snippet, state changes)
+curl "http://localhost:8000/api/v1/session/events?agent_id=summarizer_agent&limit=20"
+```
+
+> **Note:** The Memory Bank is optional. If `MEMORY_BANK_LOCATION` is not set, the agent works normally but past sessions are not remembered.
+
