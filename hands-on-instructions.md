@@ -1,87 +1,186 @@
 # Hands-On Instructions for Agentic AI Systems
+### 1. Hands-On: Build a simple summarizer AI Agent
 
-## Hands-On 1: Build a Simple Summarizer AI Agent
+*   **Instructions**
+    *   Familiarize yourself with the Agentic AI engine
+    *   Familiarize yourself with google-adk
+    *   Learn which “ingredients” are necessary to implement this AI agent with google-adk
+    *   Build a simple AI agent which summarizes texts/documents
+    *   Integrate the file upload button
 
-### Clear Instructions:
-*   Familiarize yourself with the Agentic AI engine.
-*   Familiarize yourself with Google ADK (Agent Development Kit).
-*   Learn which "ingredients" are necessary to implement this AI agent with Google ADK.
-*   Build a simple AI agent that summarizes texts/documents.
-*   Integrate a file upload button.
+*   **Explanation**
+    This hands-on introduces the foundational steps for developing a text summarization AI agent. It guides the user through understanding the core components of the Agentic AI engine and Google ADK.
 
-### Explanation and Further Details:
-This initial hands-on project is designed to introduce the core concepts of building an agentic AI system. Participants will learn to utilize the Agentic AI engine and the Google Agent Development Kit (ADK) to construct a basic AI agent capable of summarizing text. A key part of this involves understanding the components needed for such an agent (e.g., perception, reasoning, action, learning) and implementing a user interface element, specifically a file upload button, to facilitate interaction with the summarizer. This task aligns with the overall "develop, build, test, and explore" lifecycle for Agentic AI systems.
+*   **Further Details**
+    The activity involves practical application of theoretical knowledge to create a functional AI agent. It covers identifying essential elements for agent implementation within the Google ADK framework and integrating a user interface feature for document input.
 
----
+### 2. Hands-On: Add Google Search Tool
 
-## Hands-On 2: Add Google Search Tool
+*   **Instructions**
+    *   Enable web search in for your AI agent
+    *   Add a Google Search Tool to your summarizer AI agent
+    *   Understand how tools are implemented in google-adk
+    *   Understand how tools are added to AI agents
 
-### Clear Instructions:
-*   Enable web search for your AI agent.
-*   Add a Google Search Tool to your summarizer AI agent.
-*   Understand how tools are implemented in Google ADK.
-*   Understand how tools are added to AI agents.
+*   **Explanation**
+    This hands-on extends the previously built summarizer agent by incorporating external web search capabilities. It focuses on the practical aspects of tool integration within the Google ADK.
 
-### Explanation and Further Details:
-This hands-on extends the functionality of the summarizer agent by incorporating external tools. A tool is defined as an external capability that an AI agent can invoke to perform specific actions beyond its inherent text generation abilities, such as accessing real-world data, conducting complex computations, or interacting with external systems. The focus here is on integrating a Google Search tool. This integration allows the agent to query the web for up-to-date information, retrieve relevant documents, news, and facts, thereby enhancing its knowledge base and ability to answer current or unknown questions.
+*   **Further Details**
+    The task requires understanding how external functionalities are defined and connected to AI agents. It highlights the process of making tools discoverable and usable by the agent through specific prompts and schemas within the Google ADK framework.
 
----
+### 3. Hands-On: Add MCP Server
 
-## Hands-On 3: Add MCP Server
+*   **Instructions**
+    *   Get overview of Python library "mcp"
+    *   Design and implement an MCP server to fetch web pages (= request the page's files (HTML, CSS, images, etc.) from a remote server)
+    *   Script a Docker file to run the server
+    *   Integrate the mcp tool into the summarizer agent
 
-### Clear Instructions:
-*   Get an overview of the Python library "mcp".
-*   Design and implement an MCP server to fetch web pages (request HTML, CSS, images, etc. from a remote server).
-*   Script a Dockerfile to run the server.
-*   Integrate the `mcp` tool into the summarizer agent.
+*   **Explanation**
+    This activity focuses on establishing a standardized interface for tools through an MCP (Model Context Protocol) server. The goal is to enable the summarizer agent to retrieve web page content efficiently.
 
-### Explanation and Further Details:
-This section focuses on the infrastructure and standardization necessary for integrating various tools into AI agents. An MCP (Model Context Protocol) server acts as a standardized interface, allowing AI agents to access diverse tools, data, and capabilities in a consistent manner. The benefits of using an MCP server include preventing custom, one-off integrations, enabling plug-and-play connectivity across different ecosystems, and making agents more modular, scalable, and maintainable. The task specifically involves building an MCP server for fetching web page content and making this functionality available to the summarizer agent. The server architecture for `fetch_url()` illustrates how an agent interacts with the MCP server, which then uses an HTTP client (`httpx`) to retrieve data from external web pages.
----
+*   **Further Details**
+    It involves gaining familiarity with the "mcp" Python library, designing a server to handle web page fetching, containerizing the server using Docker for portability, and then integrating this new, standardized tool into the existing summarizer agent architecture.
 
-## Hands-On 4: Design an AI Agent Team
+### 4. Hands-On: Design an AI agent team for a use case of your choice
 
-### Clear Instructions:
-*   Think about a use case for an agent team.
-*   Design the agent team.
-*   Implement the agent team.
+*   **Instructions**
+    *   Think about a use case for an agent team
+    *   Design the agent team
+    *   Implement the agent team
 
-### Explanation and Further Details:
-Moving beyond single agents, this hands-on task introduces the concept of multi-agent systems, or "agent teams." The document describes two versions of agent communication within an ADK team. ADK v1 features a hierarchical, tree-like structure where agents communicate strictly with parent and child agents, ensuring clear separation of concerns and predictable communication paths. ADK v2 introduces a more flexible, graph-based structure allowing multiple connections and dynamic routing, enabling complex coordination patterns like conditional workflows, parallel processing (fan-out/fan-in), and iterative refinement loops. This exercise encourages users to conceptualize, design, and implement a system where multiple specialized agents collaborate to achieve a more complex objective than a single agent could handle.
+*   **Explanation**
+    This hands-on challenges users to conceptualize, design, and implement a multi-agent system. It encourages applying knowledge of agent collaboration to a specific use case.
 
----
+*   **Further Details**
+    The exercise involves defining roles and responsibilities for multiple AI agents, establishing communication protocols (e.g., hierarchical or graph-based), and orchestrating their interactions to solve a more complex problem than a single agent could handle.
 
-## Hands-On 5: Communicate with External Agent
+### 5. Hands-On: Communicate with external agent
 
-### Clear Instructions:
-*   Get an overview of the Python library "A2A".
-*   Implement an evaluation/critique agent for your summarizer agent as an external agent.
-*   Write a Dockerfile to run it locally.
-*   Deploy it to HuggingFace.
-*   Add it as evaluation after the summarizer.
+*   **Instructions**
+    *   Get overview of Python library "A2A"
+    *   Implement an evaluation/critique agent for your summarizer agent as external agent
+    *   Write Dockerfile to run it locally
+    *   Deploy it to HuggingFace
+    *   Add it as evaluation after the summarizer
 
-### Explanation and Further Details:
-This hands-on focuses on enabling communication and interoperability between "external" agents using an A2A (Agent-to-Agent) protocol. The A2A protocol aims to transform isolated agent systems into a connected and interoperable network. Key benefits include facilitating agent-to-agent communication across system boundaries, integrating with external services and platforms, standardizing task and context exchange, enabling decoupled integration, and ensuring secure communication. Typical use cases include collaborating with third-party agents, integrating domain-specific expert agents, and extending internal agent teams with external capabilities. For this task, participants will build and deploy an independent evaluation or critique agent (e.g., on HuggingFace) to assess the performance of the previously built summarizer agent, showcasing external agent interaction.
+*   **Explanation**
+    This activity explores inter-agent communication using the A2A (Agent-to-Agent) protocol. The practical application involves creating an external agent to critique the summarizer's performance.
 
----
+*   **Further Details**
+    It covers understanding the "A2A" Python library, building a dedicated critique agent, containerizing it with Docker, deploying it to a platform like HuggingFace, and integrating it into the workflow to provide automated evaluation of the summarization output.
 
-## Hands-On 6: Investigate State and Session
+### 6. Hands-On: Investigate state and session
 
-### Clear Instructions:
-*   Save and load state variables.
-*   Log and investigate the session.
+*   **Instructions**
+    *   Save and load state variables
+    *   Log and investigate the session
 
-### Explanation and Further Details:
-This hands-on delves into the concepts of short-term memory through "sessions" and "state" within an agentic AI system. A session acts as a container for a single user-agent conversation, maintaining a chronological list of interactions (user messages, agent responses, tool actions) and the current state. The state, described as the agent's dedicated "scratchpad," stores serializable key-value pairs to personalize interactions, track task progress, accumulate information, and make informed decisions. This exercise focuses on understanding how to manage this short-term memory by saving, loading, logging, and investigating the variables and flow within a session.
+*   **Explanation**
+    This hands-on focuses on the critical aspects of state management and session persistence in Agentic AI systems. It aims to teach how agents maintain context over time.
 
----
+*   **Further Details**
+    Users will learn techniques for saving and loading variables that define an agent's state across interactions and how to log and analyze session data to understand the flow of conversation and task progression.
 
-## Hands-On 7: Add Memory Bank
+### 7. Hands-On: Add memory bank
 
-### Clear Instructions:
-*   Implement a memory service based on the VertexAIMemoryBank.
-*   Implement and/or add built-in tools to memorize the session and load the memories into the chat.
+*   **Instructions**
+    *   Implement a memory service based on the VertexAIMemoryBank
+    *   Implement and/or add built-in tools to memorize the session and load the memories into the chat
 
-### Explanation and Further Details:
-This final hands-on explores the implementation of long-term memory in AI agents, often referred to as a "Memory Bank." Unlike short-term memory (sessions) which is temporary, long-term memory persists across multiple conversations and even application restarts. A Memory Bank is crucial for long-term personalization, allowing agents to remember user preferences, historical interactions, and key details over extended periods. It supports LLM-driven knowledge extraction by automatically identifying and persisting important information, making the agent's context dynamic and evolving rather than static (as with RAG). The task involves implementing a memory service, potentially using Google's VertexAIMemoryBank, and creating tools to both save session memories and load them into new conversations, ensuring the agent has access to a continuously updated and relevant knowledge base.
+*   **Explanation**
+    This activity introduces the concept of long-term memory for AI agents, specifically using Google's VertexAIMemoryBank. It aims to enable agents to retain and recall information across multiple sessions.
+
+*   **Further Details**
+    It involves setting up and integrating a memory service to allow agents to store important facts and preferences, thereby facilitating personalized and more informed interactions over extended periods.
+
+### 8. Hands-On: Add artifact service
+
+*   **Instructions**
+    *   Implement artifact service over Google Cloud Storage
+    *   Implement save artifact tool for markdown and pdf documents
+    *   Add save and load artifact tools to your agent team
+
+*   **Explanation**
+    This hands-on focuses on managing diverse data types (artifacts) beyond plain text within an Agentic AI system. It details the implementation of a service for structured storage and retrieval of these artifacts.
+
+*   **Further Details**
+    The activity involves leveraging Google Cloud Storage to create a robust artifact service, developing specific tools for saving and loading documents like markdown and PDFs, and integrating these tools within the agent team for efficient data handling.
+
+### 9. Hands-On: Add RAG
+
+*   **Instructions**
+    *   Implement Vertex AI Rag Engine
+    *   Add tool to access Vertex AI Rag Engine to agent team
+    *   Add sample corpus suitable for your agent teams
+
+*   **Explanation**
+    This hands-on guides users in integrating Retrieval-Augmented Generation (RAG) into their AI agents. The goal is to enhance factual accuracy and provide agents with access to dynamic, up-to-date information.
+
+*   **Further Details**
+    It involves deploying the Vertex AI RAG Engine, creating tools that allow agents to query this engine for relevant information, and preparing a suitable corpus of documents for retrieval to ground agent responses.
+
+### 10. Hands-On: Investigate ADK Runner Implementation
+
+*   **Instructions**
+    *   Use your Coding Agent to investigate the implementation of the ADK runner
+
+*   **Explanation**
+    This activity promotes a deeper understanding of the Agent Development Kit's (ADK) runtime environment. It suggests using another AI agent (a "Coding Agent") to analyze and comprehend the underlying implementation.
+
+*   **Further Details**
+    This exercise emphasizes advanced debugging and analysis techniques, potentially involving code walkthroughs and interpretation facilitated by an AI, to demystify the execution flow of ADK-based agents.
+
+### 11. Hands-On: Investigate Backend Architecture
+
+*   **Instructions**
+    *   Investigate FastAPI backend
+    *   Investigate Websocket connection, which pushes the agent's response to the UI
+
+*   **Explanation**
+    This hands-on focuses on exploring the backend architecture commonly used for Agentic AI systems, specifically the integration of FastAPI for APIs and WebSockets for real-time communication.
+
+*   **Further Details**
+    It involves examining how FastAPI handles API requests and responses, and how WebSocket connections are utilized to provide a continuous, bidirectional communication channel for pushing agent responses to the user interface efficiently.
+
+### 12. Hands-On: Deploy on Cloud Run
+
+*   **Instructions**
+    *   Implement necessary Google Cloud Run scripts
+        *   service.yaml
+        *   cloudbuild.yaml
+        *   Dockerfile
+    *   Deploy your application in Google Cloud Run
+    *   Scale your application
+
+*   **Explanation**
+    This hands-on provides practical experience in deploying Agentic AI applications using Google Cloud Run, a fully managed serverless platform.
+
+*   **Further Details**
+    The activity includes creating essential configuration files for containerization and deployment (service.yaml, cloudbuild.yaml, Dockerfile), performing the actual deployment to Cloud Run, and understanding how to manage the application's scaling for performance and cost efficiency.
+
+### 13. Hands-On: Investigate GCP Logging & Monitoring
+
+*   **Instructions**
+    *   Investigate existing GCP services for logging, metrics, tracing and audit logs
+    *   Setup OpenTelemetry in ADK and GCP
+
+*   **Explanation**
+    This hands-on focuses on establishing comprehensive observability for Agentic AI systems deployed on Google Cloud Platform. It covers logging, monitoring, and tracing.
+
+*   **Further Details**
+    It involves exploring GCP's built-in services for capturing application and system logs, monitoring metrics, and setting up OpenTelemetry for detailed end-to-end tracing of agent actions, tool calls, and LLM interactions for debugging and performance analysis.
+
+### 14. Hands-On: Perform evaluation
+
+*   **Instructions**
+    *   Add a simple evaluation case to one of your agents
+    *   The two key schema files are Eval Set and Eval Case
+    *   Use adk web - Run Evaluations via the Web UI
+
+*   **Explanation**
+    This final hands-on emphasizes the importance of evaluating AI agents. It guides users through setting up and running evaluations using the ADK's built-in framework.
+
+*   **Further Details**
+    The activity involves creating specific test scenarios (`Eval Set` and `Eval Case` schema files) and then utilizing the ADK web interface to execute these evaluations. This helps in assessing the agent's performance, correctness, and adherence to expected behavior.
 
