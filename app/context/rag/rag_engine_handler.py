@@ -29,8 +29,14 @@ def _get_or_create_corpus() -> str | None:
     Returns ``None`` if corpus creation fails.
     """
     if config.RAG_CORPUS:
-        logger.info("Using configured RAG corpus", rag_corpus=config.RAG_CORPUS)
-        return config.RAG_CORPUS
+        if not config.RAG_CORPUS.startswith("projects/"):
+            logger.warning(
+                "RAG_CORPUS does not look like a valid resource name – ignoring and searching",
+                rag_corpus=config.RAG_CORPUS,
+            )
+        else:
+            logger.info("Using configured RAG corpus", rag_corpus=config.RAG_CORPUS)
+            return config.RAG_CORPUS
 
     # Ensure we're in the right region
     _vertexai.init(project=config.GOOGLE_CLOUD_PROJECT, location=config.GOOGLE_CLOUD_LOCATION)
@@ -96,11 +102,16 @@ class RagEngineHandler:
     def _import_files_sync(self, gcs_uris: list[str]) -> dict:
         """Synchronous implementation of file import."""
         _vertexai.init(project=config.GOOGLE_CLOUD_PROJECT, location=config.GOOGLE_CLOUD_LOCATION)
+        transformation_config = rag.TransformationConfig(
+            chunking_config=rag.ChunkingConfig(
+                chunk_size=1024,
+                chunk_overlap=200,
+            ),
+        )
         response = rag.import_files(
             corpus_name=self._corpus_name,
             paths=gcs_uris,
-            chunk_size=1024,
-            chunk_overlap=200,
+            transformation_config=transformation_config,
         )
         logger.info(
             "Files imported into RAG corpus",

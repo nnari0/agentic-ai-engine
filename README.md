@@ -223,6 +223,12 @@ For every document the agent returns:
 3. **Summary** — a concise paragraph
 4. **Takeaway** — the single most important insight
 
+After producing a summary the agent also:
+- Calls the A2A Critic and appends a **## Critique** section (see §9)
+- Saves the full summary as a `.md` artifact to GCS — visible in the **Artifacts** panel (see §11)
+- Searches the RAG corpus for related context before answering knowledge questions (see §12)
+- Stores the conversation in the Memory Bank for recall across sessions (see §10)
+
 You can also ask follow-up questions about the document (e.g. *"Who is the author?"*, *"What is the main argument?"*). If the MCP Fetch server is running, the agent can additionally fetch URLs you share in the chat.
 
 ### 🔬 Research Orchestrator (`research_orchestrator`)
@@ -233,8 +239,8 @@ A multi-agent pipeline that researches a topic by fetching live web sources and 
 
 ```
 research_orchestrator  (orchestrator)
- ├── researcher_agent  → fetches web pages via the MCP Fetch server
- └── writer_agent      → compiles findings into a Markdown report
+ ├── researcher_agent  → checks RAG corpus, then fetches web pages via MCP
+ └── writer_agent      → compiles findings into a Markdown report + saves artifact
 ```
 
 **Example prompt:**
@@ -243,9 +249,11 @@ research_orchestrator  (orchestrator)
 
 The orchestrator will:
 1. Identify 2–4 authoritative URLs
-2. Delegate each fetch to `researcher_agent`
+2. Delegate each fetch to `researcher_agent` (which checks the RAG corpus first)
 3. Pass all findings to `writer_agent`
-4. Return a fully sourced Markdown report
+4. Return a fully sourced Markdown report, automatically saved as a `.md` artifact
+
+After the run, open the **Artifacts** panel to download the report (see §11). Add background documents to the **RAG Docs** panel to enrich future research runs (see §12).
 
 > **Note:** Web fetching requires the MCP Fetch server (see §8). Without it the orchestrator falls back to the model's training knowledge.
 
@@ -474,4 +482,147 @@ curl "http://localhost:8000/api/v1/session/events?agent_id=summarizer_agent&limi
 ```
 
 > **Note:** The Memory Bank is optional. If `MEMORY_BANK_LOCATION` is not set, the agent works normally but past sessions are not remembered.
+
+---
+
+## 11. Artifact Storage (GCS)
+
+Agents can produce downloadable files called **artifacts** — the Summarizer saves every summary as a `.md` file and the Research Orchestrator saves every report as a `.md` file. Artifacts are stored in your Cloud Storage bucket and are versioned automatically.
+
+### Viewing and downloading artifacts
+
+1. Select the **Summarizer** or **Research Orchestrator** agent in the sidebar
+2. Click the **📎 Artifacts** tab — it appears automatically for agents that support artifacts
+3. Each file is listed with its filename and a download arrow (⬇)
+
+### How artifacts are created
+
+The agents call the `save_artifact` tool after completing their primary task:
+
+| Agent | When | Filename |
+|---|---|---|
+| Summarizer | After every structured summary | `<topic>_summary.md` |
+| Research Orchestrator | After every research report | `<topic>_report.md` |
+
+Filenames are derived automatically from the document title or research topic.
+
+### Where artifacts are stored in GCS
+
+```
+gs://<GOOGLE_CLOUD_STORAGE_BUCKET>/
+  <app_name>/<user_id>/<session_id>/<filename>/<version>
+```
+
+Each call to `save_artifact` increments the version. The Artifacts panel always shows the latest version.
+
+### Custom artifacts
+
+Any agent with access to the `save_artifact` tool can persist content. Pass a filename (`.md` for Markdown, `.txt` for plain text, `.pdf` for PDF) and the content string. Example agent instruction:
+
+> *"Summarize this document and save the result as `my_notes.md`"*
+
+---
+
+## 12. RAG Documents (Knowledge Base)
+
+The **RAG Docs** panel lets you build a persistent knowledge base that both the Summarizer and the Research Orchestrator can query before reaching out to the web. Documents are stored in a **Vertex AI RAG corpus** and retrieved semantically at query time.
+
+### How retrieval works
+
+```
+user asks a question
+  → agent calls retrieve_from_corpus("query")
+      → Vertex AI returns the most relevant text chunks (top-5)
+          → agent uses chunks as grounded context
+              → agent fetches web only if corpus result is insufficient
+```
+
+For Gemini 2+ models retrieval is handled server-side as a native tool — no extra function-call round-trip is needed.
+
+### Setup
+
+**1. Enable the Vertex AI RAG Engine API**
+
+The RAG Engine uses the same `aiplatform.googleapis.com` API as the rest of Vertex AI. If you already enabled it in §2.2, nothing more is needed.
+
+**2. Add the RAG corpus variable to `.env`** (optional on first start)
+
+```env
+# Leave empty to auto-create a corpus on first start.
+# After the first start, copy the corpus name printed in the logs:
+RAG_CORPUS=
+```
+
+On the first start the app looks for an existing corpus named `agentic-ai-engineering-rag` and creates one if it does not exist. The corpus name is printed in the server logs:
+
+```
+RAG corpus created  corpus_name=projects/.../locations/.../ragCorpora/123
+```
+
+Copy this value into `.env` to skip auto-discovery on subsequent starts:
+
+```env
+RAG_CORPUS=projects/<PROJECT_ID>/locations/<LOCATION>/ragCorpora/<ID>
+```
+
+### Adding documents via the UI
+
+The **RAG Docs** sidebar panel accepts any file that has already been uploaded to your Cloud Storage bucket.
+
+1. Upload the file to GCS (using the `gcloud` CLI or the Cloud Console):
+   ```bash
+   gcloud storage cp my_document.pdf gs://<BUCKET_NAME>/corpus/
+   ```
+2. Select the **Summarizer** or **Research Orchestrator** agent
+3. Click the **🗂️ RAG Docs** tab
+4. Paste the GCS URI into the input field:
+   ```
+   gs://<BUCKET_NAME>/corpus/my_document.pdf
+   ```
+5. Click **Import** — the file is chunked and embedded automatically
+
+Supported file types: `.pdf`, `.txt`, `.md`, `.html`, `.docx`
+
+### Adding documents via the seed script
+
+The `corpus/` directory contains three sample documents about AI agents, RAG, and Google Cloud. Run the seed script once to upload and import them all:
+
+```bash
+python corpus/seed_corpus.py
+```
+
+The script:
+1. Uploads every `.md` file in `corpus/` to `gs://<BUCKET>/corpus/`
+2. Imports the GCS URIs into the RAG corpus (chunked at 1 024 tokens, 200-token overlap)
+3. Prints the corpus resource name — copy it into `.env` as `RAG_CORPUS`
+
+### Sample corpus documents
+
+| File | Content |
+|---|---|
+| `corpus/ai_agents_and_orchestration.md` | ReAct pattern, orchestrator / sub-agent design, Google ADK components |
+| `corpus/retrieval_augmented_generation.md` | RAG pipeline, chunking, Vertex AI RAG Engine, RAG vs fine-tuning |
+| `corpus/vertex_ai_and_google_cloud_ai.md` | Gemini models, Vertex AI services, Cloud Run deployment, GCS |
+
+After seeding, try asking the Research Orchestrator:
+
+> *"Research how RAG differs from fine-tuning"*
+
+The researcher will pull the relevant chunks from the corpus before fetching any URLs.
+
+### Managing documents
+
+The RAG Docs panel lists all imported files. Each file has a **✕** delete button to remove it from the corpus.
+
+To list or delete files via the REST API:
+
+```bash
+# List all documents in the corpus
+curl "http://localhost:8000/api/v1/rag/files"
+
+# Delete a document by resource name
+curl -X DELETE "http://localhost:8000/api/v1/rag/files?file_name=<resource_name>"
+```
+
+> **Note:** The RAG corpus is optional. If the corpus cannot be created (e.g. the API is not enabled), the agents fall back to web search only. No error is shown to the user.
 

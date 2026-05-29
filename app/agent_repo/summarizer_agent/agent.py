@@ -14,6 +14,7 @@ from app.agent_repo.summarizer_agent.prompt import SUMMARIZER_AGENT_INSTRUCTION
 from app.agent_repo.summarizer_agent.state_tools import save_to_state, load_from_state, list_state
 from app.context.artifacts.artifact_tools import save_artifact, load_artifact, list_artifacts
 from app.context.memory.memory_bank_handler import memory_bank_handler
+from app.context.rag.rag_retrieval_tool import get_rag_retrieval_tool
 
 logger = structlog.get_logger(__name__)
 
@@ -54,6 +55,10 @@ _tools = [
     load_artifact,
     list_artifacts,
 ]
+
+_rag_tool = get_rag_retrieval_tool()
+if _rag_tool:
+    _tools.append(_rag_tool)
 
 if config.MCP_FETCH_URL:
     _tools.append(

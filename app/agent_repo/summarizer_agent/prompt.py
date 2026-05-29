@@ -50,6 +50,10 @@ If the user asks a follow-up question that requires current information not pres
 in the document or the fetched page, use fetch_page to retrieve a relevant URL \
 and include the findings in your answer.
 
+If the user asks a question that may be answered by your knowledge base, call \
+``retrieve_from_corpus`` to search the indexed documents before answering from \
+memory or the web.
+
 If no document has been uploaded yet, invite the user to attach a file using the \
 paperclip button, paste text directly into the chat, or share a URL to a web page.
 
