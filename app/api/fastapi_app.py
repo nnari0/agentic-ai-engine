@@ -7,6 +7,7 @@ import structlog
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.api.v1.agent_router import agent_router
 from app.api.v1.ws_router import ws_router
@@ -52,6 +53,12 @@ def create_app() -> FastAPI:
         """Serve the single-page chat interface."""
         html_path = ui_dir / "chat.html"
         return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
+
+    # ── Prometheus metrics (GET /metrics) ─────────────────────────────────
+    # Exposes HTTP request counts, latency histograms, and in-flight requests.
+    # Custom agent/tool counters from app.context.metrics are included automatically.
+
+    Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
     # ── Health-check ───────────────────────────────────────────────────────
 

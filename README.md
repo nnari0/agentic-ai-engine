@@ -626,3 +626,72 @@ curl -X DELETE "http://localhost:8000/api/v1/rag/files?file_name=<resource_name>
 
 > **Note:** The RAG corpus is optional. If the corpus cannot be created (e.g. the API is not enabled), the agents fall back to web search only. No error is shown to the user.
 
+---
+
+## 13. Tracing with OpenTelemetry & Cloud Trace
+
+The application is instrumented with **OpenTelemetry**. Every agent turn, LLM request, and tool call emits a span automatically — no extra code is needed to benefit from tracing.
+
+| Environment | Exporter | Where to read traces |
+|---|---|---|
+| Cloud Run | Cloud Trace (GCP) | Google Cloud Console → Cloud Trace |
+| Local dev | _(no exporter)_ | Spans are created but not exported |
+
+### What is traced
+
+The ADK emits spans for all of the following automatically:
+
+| Span | What it covers |
+|---|---|
+| Agent turn | Full invocation from user input to final response |
+| LLM request | Each call to Gemini — includes model, input/output token counts |
+| Tool call | Each function call (`save_artifact`, `retrieve_from_corpus`, …) |
+| Sub-agent delegation | Calls from the orchestrator to `researcher_agent` / `writer_agent` |
+
+### Viewing traces in Cloud Trace
+
+1. Open [Cloud Trace → Trace Explorer](https://console.cloud.google.com/traces/list) in the GCP Console
+2. Select your project (`agentic-ai-engineering-496919`)
+3. Each row is one agent turn. Click a row to open the **waterfall view**
+
+**Useful filters in the Trace Explorer:**
+
+```
+# All traces for the agentic-ai-engine service
+resource.labels.service_name = "agentic-ai-engine"
+
+# Only traces that include a specific tool call
+SpanName:tool_call
+```
+
+**Reading the waterfall:**
+
+```
+agent_turn  ──────────────────────────────────────  450 ms
+  ├── preload_memory  ──────────  120 ms
+  ├── llm_request (gemini-2.5-flash)  ──  80 ms
+  ├── tool_call: retrieve_from_corpus  ─  30 ms
+  ├── llm_request (gemini-2.5-flash)  ──  90 ms
+  └── tool_call: save_artifact  ────────  15 ms
+```
+
+### Enabling the Cloud Trace API
+
+If traces do not appear, enable the API first:
+
+```bash
+gcloud services enable cloudtrace.googleapis.com --project=<PROJECT_ID>
+```
+
+The Cloud Run service account also needs the **Cloud Trace Agent** role:
+
+```bash
+gcloud projects add-iam-policy-binding <PROJECT_ID> \
+  --member="serviceAccount:agentic-ai-engine@<PROJECT_ID>.iam.gserviceaccount.com" \
+  --role=roles/cloudtrace.agent
+```
+
+### Local development
+
+Locally, no traces are exported. The OpenTelemetry provider is still configured so ADK can create spans internally — if you want to inspect them locally, you can attach a console exporter or run a local [Jaeger](https://www.jaegertracing.io/) instance and set `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318`.
+

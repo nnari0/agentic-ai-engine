@@ -5,10 +5,14 @@ import os
 import uvicorn
 
 from app.config import configure_logging
+from app.context.telemetry import configure_telemetry
 from app.api.fastapi_app import create_app
 
 # Configure structured logging before anything else
 configure_logging()
+
+# Set up OpenTelemetry tracing (Cloud Trace on Cloud Run, no-op locally)
+configure_telemetry()
 
 # Module-level app instance (used by uvicorn in both local and Cloud Run)
 app = create_app()

@@ -12,6 +12,7 @@ from google.adk.tools.mcp_tool.mcp_toolset import McpToolset
 from app import config
 from app.agent_repo.orchestrator.prompt import REPORT_WRITER_INSTRUCTION, WEB_RESEARCHER_INSTRUCTION
 from app.context.artifacts.artifact_tools import save_artifact, list_artifacts
+from app.context.metrics import on_after_agent, on_after_tool, on_before_model, on_after_model
 from app.context.rag.rag_retrieval_tool import retrieve_from_corpus
 
 # fetch_page is only available when the MCP Fetch server is running.
@@ -30,6 +31,10 @@ researcher_agent = LlmAgent(
     ),
     instruction=WEB_RESEARCHER_INSTRUCTION,
     tools=_researcher_tools,
+    after_agent_callback=on_after_agent,
+    after_tool_callback=on_after_tool,
+    before_model_callback=on_before_model,
+    after_model_callback=on_after_model,
 )
 
 writer_agent = LlmAgent(
@@ -38,4 +43,8 @@ writer_agent = LlmAgent(
     description="Compiles research notes into a polished, structured Markdown report.",
     instruction=REPORT_WRITER_INSTRUCTION,
     tools=[save_artifact, list_artifacts],
+    after_agent_callback=on_after_agent,
+    after_tool_callback=on_after_tool,
+    before_model_callback=on_before_model,
+    after_model_callback=on_after_model,
 )

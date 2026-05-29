@@ -14,6 +14,7 @@ from app.agent_repo.summarizer_agent.prompt import SUMMARIZER_AGENT_INSTRUCTION
 from app.agent_repo.summarizer_agent.state_tools import save_to_state, load_from_state, list_state
 from app.context.artifacts.artifact_tools import save_artifact, load_artifact, list_artifacts
 from app.context.memory.memory_bank_handler import memory_bank_handler
+from app.context.metrics import compose, on_after_agent, on_after_tool, on_before_model, on_after_model
 from app.context.rag.rag_retrieval_tool import retrieve_from_corpus
 
 logger = structlog.get_logger(__name__)
@@ -73,5 +74,8 @@ summarizer_agent = LlmAgent(
     tools=_tools,
     # Save the session to the Memory Bank after every agent turn so past
     # summaries and conversations are available in future sessions.
-    after_agent_callback=_memorize_session,
+    after_agent_callback=compose(_memorize_session, on_after_agent),
+    after_tool_callback=on_after_tool,
+    before_model_callback=on_before_model,
+    after_model_callback=on_after_model,
 )

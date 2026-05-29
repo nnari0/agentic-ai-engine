@@ -13,6 +13,7 @@ from google.adk.tools import AgentTool
 from app import config
 from app.agent_repo.orchestrator.prompt import COORDINATOR_INSTRUCTION
 from app.agent_repo.orchestrator.sub_agents import researcher_agent, writer_agent
+from app.context.metrics import on_after_agent, on_before_model, on_after_model
 
 research_orchestrator = LlmAgent(
     name="research_orchestrator",
@@ -26,4 +27,7 @@ research_orchestrator = LlmAgent(
         AgentTool(agent=researcher_agent),
         AgentTool(agent=writer_agent),
     ],
+    after_agent_callback=on_after_agent,
+    before_model_callback=on_before_model,
+    after_model_callback=on_after_model,
 )
