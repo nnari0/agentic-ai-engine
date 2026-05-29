@@ -1,0 +1,138 @@
+# Cloud Run service manifest.
+#
+# Manual deploy (run from repo root, substitute IMAGE_URL first):
+#   IMAGE=europe-north1-docker.pkg.dev/<PROJECT_ID>/docker/agentic-ai-engine:latest
+#   sed "s|IMAGE_URL|$IMAGE|g" deploy/service.yaml | gcloud run services replace - --region=europe-north1
+#
+# Via Cloud Build (image is substituted automatically, run from repo root):
+#   gcloud builds submit --config=deploy/cloudbuild.yaml .
+#
+# Replace every <PLACEHOLDER> with your actual values before deploying manually.
+
+apiVersion: serving.knative.dev/v1
+kind: Service
+
+metadata:
+  name: agentic-ai-engine
+  labels:
+    cloud.googleapis.com/location: europe-north1
+  annotations:
+    # Route all external traffic directly to Cloud Run (no load balancer required).
+    # Change to "internal" or "internal-and-cloud-load-balancing" for private deployments.
+    run.googleapis.com/ingress: all
+
+spec:
+  template:
+    metadata:
+      annotations:
+        # Keep one warm instance to avoid cold-start latency for WebSocket connections.
+        autoscaling.knative.dev/minScale: "1"
+        # Scale out horizontally for load; increase if needed.
+        autoscaling.knative.dev/maxScale: "5"
+        # Gen2 runtime: better performance and full Linux syscall compatibility.
+        run.googleapis.com/execution-environment: gen2
+
+    spec:
+      # Dedicated service account — must have:
+      #   roles/aiplatform.user     (Vertex AI / LLM / RAG / Sessions)
+      #   roles/storage.objectAdmin (GCS artifact storage)
+      #   roles/secretmanager.secretAccessor (if using Secret Manager)
+      #
+      # Create with:
+      #   gcloud iam service-accounts create agentic-ai-engine \
+      #     --display-name="Agentic AI Engine"
+      #   gcloud projects add-iam-policy-binding <PROJECT_ID> \
+      #     --member=serviceAccount:agentic-ai-engine@<PROJECT_ID>.iam.gserviceaccount.com \
+      #     --role=roles/aiplatform.user
+      #   gcloud projects add-iam-policy-binding <PROJECT_ID> \
+      #     --member=serviceAccount:agentic-ai-engine@<PROJECT_ID>.iam.gserviceaccount.com \
+      #     --role=roles/storage.objectAdmin
+      serviceAccountName: agentic-ai-engine@<PROJECT_ID>.iam.gserviceaccount.com
+
+      # 10 concurrent requests per instance; scale out rather than up.
+      # Keeps session state local to one instance per user.
+      containerConcurrency: 10
+
+      # Max 3600 s — allows long-lived WebSocket connections.
+      timeoutSeconds: 3600
+
+      containers:
+        # IMAGE_URL is substituted by cloudbuild.yaml.
+        # For manual deploy, replace with the full image reference.
+        - image: IMAGE_URL
+
+          ports:
+            - name: http1
+              containerPort: 8080
+
+          resources:
+            limits:
+              memory: 2Gi
+              cpu: "2"
+
+          env:
+            # ── Server ─────────────────────────────────────────────────────
+            - name: PORT
+              value: "8080"
+
+            # ── Google Cloud Platform ───────────────────────────────────────
+            - name: GOOGLE_CLOUD_PROJECT
+              value: <PROJECT_ID>
+            - name: GOOGLE_CLOUD_LOCATION
+              value: europe-north1
+            - name: GOOGLE_CLOUD_STORAGE_BUCKET
+              value: <BUCKET_NAME>
+            - name: GOOGLE_GENAI_USE_VERTEXAI
+              value: "TRUE"
+
+            # ── Application ─────────────────────────────────────────────────
+            - name: DEFAULT_AGENT_ID
+              value: greeting_agent
+            - name: DEFAULT_LLM_MODEL
+              value: gemini-2.5-flash
+            # Cloud Run auto-detects SESSION_BACKEND=VERTEX via IS_CLOUD_RUN flag
+            # in config.py — this line makes it explicit.
+            - name: SESSION_BACKEND
+              value: VERTEX
+            - name: LOG_LEVEL
+              value: INFO
+
+            # ── Memory Bank / Agent Engine ──────────────────────────────────
+            # Leave empty on first deploy; the app auto-creates the engine.
+            # Copy the engine ID from Cloud Logging after the first startup:
+            #   resource.type="cloud_run_revision"
+            #   jsonPayload.message="Agent Engine created"
+            - name: AGENT_ENGINE_ID
+              value: ""
+            # Memory Bank is only available in us-central1 as of 2025.
+            - name: MEMORY_BANK_LOCATION
+              value: us-central1
+
+            # ── RAG corpus ───────────────────────────────────────────────────
+            # Leave empty on first deploy; the app auto-discovers or creates.
+            # Copy the corpus name from Cloud Logging after the first startup:
+            #   jsonPayload.message="RAG corpus created"
+            # Format: projects/<PROJECT_ID>/locations/<LOCATION>/ragCorpora/<ID>
+            - name: RAG_CORPUS
+              value: ""
+
+            # ── A2A critic agent ────────────────────────────────────────────
+            # URL of the critic agent's Cloud Run service (/.well-known/agent.json).
+            # Leave empty to skip the critique step.
+            - name: CRITIC_A2A_URL
+              value: ""
+
+            # ── MCP Fetch server ─────────────────────────────────────────────
+            # SSE endpoint of the MCP Fetch Cloud Run service (/sse).
+            # Leave empty to disable web-page fetching.
+            - name: MCP_FETCH_URL
+              value: ""
+
+          # Startup probe — wait for FastAPI to be ready before routing traffic.
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 12   # 60 s total startup budget

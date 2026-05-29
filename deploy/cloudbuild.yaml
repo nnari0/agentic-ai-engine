@@ -1,0 +1,88 @@
+# Cloud Build pipeline — build, push, and deploy to Cloud Run.
+#
+# Prerequisites
+# -------------
+# 1. Artifact Registry repository (run once):
+#      gcloud artifacts repositories create docker \
+#        --repository-format=docker \
+#        --location=europe-north1 \
+#        --project=$PROJECT_ID
+#
+# 2. Cloud Build service account permissions (run once):
+#      # Determine the Cloud Build SA email:
+#      BUILD_SA=$(gcloud projects describe $PROJECT_ID \
+#        --format='value(projectNumber)')@cloudbuild.gserviceaccount.com
+#
+#      gcloud projects add-iam-policy-binding $PROJECT_ID \
+#        --member=serviceAccount:$BUILD_SA \
+#        --role=roles/run.admin
+#
+#      gcloud iam service-accounts add-iam-policy-binding \
+#        agentic-ai-engine@$PROJECT_ID.iam.gserviceaccount.com \
+#        --member=serviceAccount:$BUILD_SA \
+#        --role=roles/iam.serviceAccountUser
+#
+# Manual trigger (run from repo root):
+#   gcloud builds submit --config=deploy/cloudbuild.yaml .
+#
+# Automated trigger (on push to main):
+#   gcloud builds triggers create github \
+#     --repo-name=agentic-ai-engine \
+#     --repo-owner=<GITHUB_ORG> \
+#     --branch-pattern=^main$ \
+#     --build-config=deploy/cloudbuild.yaml
+
+substitutions:
+  _REGION: europe-north1
+  _SERVICE: agentic-ai-engine
+  _REPOSITORY: docker
+
+steps:
+  # 1. Build Docker image — reuse the previous :latest layer as cache.
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --tag=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:${COMMIT_SHA}
+      - --tag=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:latest
+      - --cache-from=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:latest
+      - --build-arg=BUILDKIT_INLINE_CACHE=1
+      - --file=deploy/Dockerfile
+      - .
+
+  # 2. Push both tags to Artifact Registry.
+  - id: push
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - --all-tags
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE}
+    waitFor: [build]
+
+  # 3. Inject the concrete image reference into service.yaml and deploy.
+  - id: patch-manifest
+    name: bash
+    script: |
+      sed "s|IMAGE_URL|${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:${COMMIT_SHA}|g" \
+        deploy/service.yaml > /workspace/service-patched.yaml
+    waitFor: [push]
+
+  - id: deploy
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args:
+      - run
+      - services
+      - replace
+      - /workspace/service-patched.yaml
+      - --region=${_REGION}
+      - --project=${PROJECT_ID}
+    waitFor: [patch-manifest]
+
+images:
+  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:${COMMIT_SHA}
+  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:latest
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  dynamicSubstitutions: true
