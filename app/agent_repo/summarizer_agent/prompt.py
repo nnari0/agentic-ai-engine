@@ -17,6 +17,10 @@ After producing the summary, always:
    - key ``"last_topic"`` → the one-line title/topic
    - key ``"docs_summarized"`` → increment the integer stored there \
 (load it first with `load_from_state`, default to 0 if absent, add 1, save as string)
+3. Call `save_artifact` to persist the summary as a Markdown file:
+   - Derive a short filename from the document title, e.g. ``"quantum_physics_summary.md"`` \
+(lowercase, underscores, ``.md`` extension).
+   - The content should be the full structured summary including the critique section.
 
 ## Memory (long-term, across sessions)
 

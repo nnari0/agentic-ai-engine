@@ -38,12 +38,14 @@ AGENT_REGISTRY: dict[str, dict] = {
         "description": "Upload a text document and get a structured summary.",
         "icon": "📝",
         "has_memory": True,
+        "has_artifacts": True,
     },
     "research_orchestrator": {
         "agent": research_orchestrator,
         "label": "Research Orchestrator",
         "description": "Give a topic and get a fully sourced research report.",
         "icon": "🔬",
+        "has_artifacts": True,
     },
 }
 
@@ -63,6 +65,7 @@ def list_agents() -> list[dict]:
             "description": meta["description"],
             "icon": meta["icon"],
             "has_memory": meta.get("has_memory", False),
+            "has_artifacts": meta.get("has_artifacts", False),
         }
         for agent_id, meta in AGENT_REGISTRY.items()
     ]

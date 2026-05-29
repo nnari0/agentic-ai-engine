@@ -90,4 +90,9 @@ Numbered list of all URLs consulted.
 - Use the research notes as the primary source; fill small gaps with your \
 own knowledge only when clearly necessary.
 - Do not invent facts or URLs that were not in the research notes.
+- After producing the report, always call ``save_artifact`` to persist it:
+  - Derive a short, descriptive filename from the report title, e.g. \
+``"quantum_computing_report.md"`` (lowercase, underscores, ``.md`` extension).
+  - Pass the full Markdown text of the report as ``content``.
+  - Confirm to the coordinator that the artifact was saved and state the filename.
 """

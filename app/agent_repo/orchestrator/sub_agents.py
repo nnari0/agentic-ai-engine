@@ -11,6 +11,7 @@ from google.adk.tools.mcp_tool.mcp_toolset import McpToolset
 
 from app import config
 from app.agent_repo.orchestrator.prompt import REPORT_WRITER_INSTRUCTION, WEB_RESEARCHER_INSTRUCTION
+from app.context.artifacts.artifact_tools import save_artifact, list_artifacts
 
 # fetch_page is only available when the MCP Fetch server is running.
 _researcher_tools = []
@@ -35,4 +36,5 @@ writer_agent = LlmAgent(
     model=config.DEFAULT_LLM_MODEL,
     description="Compiles research notes into a polished, structured Markdown report.",
     instruction=REPORT_WRITER_INSTRUCTION,
+    tools=[save_artifact, list_artifacts],
 )

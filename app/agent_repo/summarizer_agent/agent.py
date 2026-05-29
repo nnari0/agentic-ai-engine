@@ -12,6 +12,7 @@ from app import config
 from app.agent_repo.summarizer_agent.critique_tool import critique_summary
 from app.agent_repo.summarizer_agent.prompt import SUMMARIZER_AGENT_INSTRUCTION
 from app.agent_repo.summarizer_agent.state_tools import save_to_state, load_from_state, list_state
+from app.context.artifacts.artifact_tools import save_artifact, load_artifact, list_artifacts
 from app.context.memory.memory_bank_handler import memory_bank_handler
 
 logger = structlog.get_logger(__name__)
@@ -48,6 +49,10 @@ _tools = [
     save_to_state,
     load_from_state,
     list_state,
+    # GCS artifact storage: persist summaries and findings as downloadable files.
+    save_artifact,
+    load_artifact,
+    list_artifacts,
 ]
 
 if config.MCP_FETCH_URL:
