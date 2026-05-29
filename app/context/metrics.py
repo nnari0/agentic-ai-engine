@@ -106,7 +106,7 @@ async def on_after_agent(callback_context: CallbackContext) -> None:
     agent_turns_total.labels(agent_name=callback_context.agent_name).inc()
 
 
-async def on_after_tool(tool, args, tool_context, response):
+async def on_after_tool(tool, args, tool_context, tool_response):
     """Count tool invocations by name and agent."""
     try:
         agent_name = tool_context.agent_name

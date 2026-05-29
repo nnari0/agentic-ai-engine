@@ -695,3 +695,84 @@ gcloud projects add-iam-policy-binding <PROJECT_ID> \
 
 Locally, no traces are exported. The OpenTelemetry provider is still configured so ADK can create spans internally — if you want to inspect them locally, you can attach a console exporter or run a local [Jaeger](https://www.jaegertracing.io/) instance and set `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318`.
 
+---
+
+## 14. Agent Evaluation
+
+The Summarizer agent ships with a set of **eval cases** that can be run through the ADK web UI or the CLI. Each case defines an input, the expected tool call sequence, and a reference final response — the ADK judge scores the actual run against both.
+
+### Eval cases
+
+| Eval ID | Input | Expected tools |
+|---|---|---|
+| `basic_text_summarisation` | Short paragraph (Transformer attention) | `critique_summary` → `save_to_state` → `save_artifact` |
+| `knowledge_base_query` | "What does the knowledge base say about RAG?" | `retrieve_from_corpus` |
+| `list_saved_summaries` | "What summaries have you saved?" | `list_artifacts` |
+
+Eval files are located in `app/agent_repo/summarizer_agent/evals/`.
+
+### Run via the ADK web UI
+
+```bash
+adk web app/
+```
+
+Open **http://localhost:8000**, select the **Summarizer** agent, and click the **Evals** tab. Select `summarizer_eval_set` and click **Run**.
+
+### Run via the CLI
+
+```bash
+adk eval app/agent_repo/summarizer_agent \
+  app/agent_repo/summarizer_agent/evals/summarizer_eval_set.json
+```
+
+### Adding new eval cases
+
+Open `app/agent_repo/summarizer_agent/evals/summarizer_eval_set.json` and append a new object to `eval_cases`. Each case needs:
+
+- `eval_id` — unique string identifier
+- `conversation` — list of turns, each with `user_content` and optionally `final_response` and `intermediate_data.tool_uses`
+
+---
+
+## 15. Unit Tests
+
+Unit tests live in `tests/` and are run with **pytest**.
+
+```bash
+# Run all tests
+pytest
+
+# Run with live output
+pytest -v
+
+# Run a single file
+pytest tests/test_artifact_tools.py -v
+
+# Run with coverage report (HTML written to htmlcov/)
+pytest --cov=app --cov-report=html
+```
+
+### Test files
+
+| File | What it tests |
+|---|---|
+| `tests/test_agent_registry.py` | Agent IDs, capability flags (`has_memory`, `has_artifacts`, `has_rag`), `get_agent` lookup |
+| `tests/test_summarizer_prompt.py` | All 7 prompt sections present, all tools documented, output format correct |
+| `tests/test_artifact_tools.py` | `_user_scoped` prefix logic, `list_artifacts` display, `load_artifact` found/not-found (no GCS calls — uses mocks) |
+
+### Adding new tests
+
+Create a file `tests/test_<module>.py`. Use `pytest.mark.asyncio` for async tool functions:
+
+```python
+import pytest
+
+@pytest.mark.asyncio
+async def test_my_tool():
+    from unittest.mock import AsyncMock
+    ctx = AsyncMock()
+    ctx.some_method = AsyncMock(return_value="result")
+    ...
+```
+

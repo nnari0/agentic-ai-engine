@@ -1,0 +1,111 @@
+{
+  "eval_set_id": "summarizer_eval_set",
+  "name": "Summarizer Agent – Core Behaviour",
+  "description": "Three eval cases covering structured summarisation, corpus retrieval, and artifact listing.",
+  "eval_cases": [
+    {
+      "eval_id": "basic_text_summarisation",
+      "conversation": [
+        {
+          "invocation_id": "turn_1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Please summarise the following text:\n\nTransformer models replace recurrence with a self-attention mechanism that directly models dependencies between all token pairs, regardless of distance. The scaled dot-product attention computes a weighted sum of value vectors, where weights are derived from the similarity of query and key vectors. Multi-head attention runs several attention functions in parallel and concatenates the results, allowing the model to attend to different representation subspaces simultaneously. Positional encodings are added to the token embeddings to inject information about the position of each token in the sequence, since the attention operation itself is permutation-invariant."
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "### Title / Topic\nTransformer Self-Attention Mechanisms\n\n### Key Points\n- Self-attention models all token-pair dependencies directly, regardless of distance\n- Scaled dot-product attention weights value vectors by query–key similarity\n- Multi-head attention runs parallel attention functions over different subspaces\n- Positional encodings inject sequence-order information into the permutation-invariant mechanism\n\n### Summary\nTransformer models replace recurrence with self-attention, enabling direct modelling of long-range token dependencies. Multi-head attention allows the model to simultaneously attend to multiple representation subspaces. Because attention is order-agnostic, positional encodings are required to preserve sequence information.\n\n### Takeaway\nSelf-attention is the core innovation that lets Transformers capture long-range dependencies that RNNs struggle with.\n\n## Critique"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "critique_summary",
+                "args": {}
+              },
+              {
+                "name": "save_to_state",
+                "args": {"key": "last_topic", "value": "Transformer Self-Attention Mechanisms"}
+              },
+              {
+                "name": "save_artifact",
+                "args": {"filename": "transformer_self_attention_summary.md"}
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "eval_id": "knowledge_base_query",
+      "conversation": [
+        {
+          "invocation_id": "turn_1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "What does the knowledge base say about retrieval augmented generation?"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "Based on the knowledge base, retrieval augmented generation (RAG) is a technique that combines a retrieval step with a language model to ground responses in external documents. The retrieval step fetches relevant text chunks from a vector store, which are then provided as context to the model before it generates a response. This reduces hallucinations and allows the model to answer questions about information not seen during training."
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "retrieve_from_corpus",
+                "args": {"query": "retrieval augmented generation"}
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "eval_id": "list_saved_summaries",
+      "conversation": [
+        {
+          "invocation_id": "turn_1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "What summaries have you saved so far?"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "Here are the summaries saved so far:"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "list_artifacts",
+                "args": {}
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
