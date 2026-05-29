@@ -1,7 +1,7 @@
 # Cloud Run service manifest.
 #
 # Manual deploy (run from repo root, substitute IMAGE_URL first):
-#   IMAGE=europe-north1-docker.pkg.dev/<PROJECT_ID>/docker/agentic-ai-engine:latest
+#   IMAGE=europe-north1-docker.pkg.dev/<CLOUD_PROJECT>/docker/agentic-ai-engine:latest
 #   sed "s|IMAGE_URL|$IMAGE|g" deploy/service.yaml | gcloud run services replace - --region=europe-north1
 #
 # Via Cloud Build (image is substituted automatically, run from repo root):
@@ -41,13 +41,13 @@ spec:
       # Create with:
       #   gcloud iam service-accounts create agentic-ai-engine \
       #     --display-name="Agentic AI Engine"
-      #   gcloud projects add-iam-policy-binding <PROJECT_ID> \
-      #     --member=serviceAccount:agentic-ai-engine@<PROJECT_ID>.iam.gserviceaccount.com \
+      #   gcloud projects add-iam-policy-binding <CLOUD_PROJECT> \
+      #     --member=serviceAccount:agentic-ai-engine@<CLOUD_PROJECT>.iam.gserviceaccount.com \
       #     --role=roles/aiplatform.user
-      #   gcloud projects add-iam-policy-binding <PROJECT_ID> \
-      #     --member=serviceAccount:agentic-ai-engine@<PROJECT_ID>.iam.gserviceaccount.com \
+      #   gcloud projects add-iam-policy-binding <CLOUD_PROJECT> \
+      #     --member=serviceAccount:agentic-ai-engine@<CLOUD_PROJECT>.iam.gserviceaccount.com \
       #     --role=roles/storage.objectAdmin
-      serviceAccountName: agentic-ai-engine@<PROJECT_ID>.iam.gserviceaccount.com
+      serviceAccountName: agentic-ai-engine@<CLOUD_PROJECT>.iam.gserviceaccount.com
 
       # 10 concurrent requests per instance; scale out rather than up.
       # Keeps session state local to one instance per user.
@@ -71,17 +71,13 @@ spec:
               cpu: "2"
 
           env:
-            # ── Server ─────────────────────────────────────────────────────
-            - name: PORT
-              value: "8080"
-
             # ── Google Cloud Platform ───────────────────────────────────────
             - name: GOOGLE_CLOUD_PROJECT
-              value: <PROJECT_ID>
+              value: <CLOUD_PROJECT>
             - name: GOOGLE_CLOUD_LOCATION
               value: europe-north1
             - name: GOOGLE_CLOUD_STORAGE_BUCKET
-              value: <BUCKET_NAME>
+              value: <PROJECT_ID>
             - name: GOOGLE_GENAI_USE_VERTEXAI
               value: "TRUE"
 
@@ -104,15 +100,15 @@ spec:
             #   jsonPayload.message="Agent Engine created"
             - name: AGENT_ENGINE_ID
               value: ""
-            # Memory Bank is only available in us-central1 as of 2025.
+            # Memory Bank is only available in europe-north1 as of 2025.
             - name: MEMORY_BANK_LOCATION
-              value: us-central1
+              value: europe-north1
 
             # ── RAG corpus ───────────────────────────────────────────────────
             # Leave empty on first deploy; the app auto-discovers or creates.
             # Copy the corpus name from Cloud Logging after the first startup:
             #   jsonPayload.message="RAG corpus created"
-            # Format: projects/<PROJECT_ID>/locations/<LOCATION>/ragCorpora/<ID>
+            # Format: projects/<CLOUD_PROJECT>/locations/<LOCATION>/ragCorpora/<ID>
             - name: RAG_CORPUS
               value: ""
 

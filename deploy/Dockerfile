@@ -8,16 +8,15 @@ ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
     UV_PROJECT_ENVIRONMENT=/app/.venv
 
-# Install dependencies before copying source code to maximise Docker layer cache.
-RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --frozen --no-install-project --no-dev
+# Copy dependency specs first so Docker caches the install layer separately
+# from the application source — rebuilds only re-run uv sync when lock files change.
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-install-project --no-dev
 
-# Copy application source and perform the final install (adds the project itself).
-COPY . .
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev
+# Copy application source and finalize install (adds the project package itself).
+COPY agentic_ai_main.py ./
+COPY app/ ./app/
+RUN uv sync --frozen --no-dev
 
 
 # ── Runtime stage ─────────────────────────────────────────────────────────────

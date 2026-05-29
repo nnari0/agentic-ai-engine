@@ -25,17 +25,22 @@
 # Manual trigger (run from repo root):
 #   gcloud builds submit --config=deploy/cloudbuild.yaml .
 #
-# Automated trigger (on push to main):
+# Automated trigger (on push to main) — COMMIT_SHA is set automatically by the trigger:
 #   gcloud builds triggers create github \
 #     --repo-name=agentic-ai-engine \
 #     --repo-owner=<GITHUB_ORG> \
 #     --branch-pattern=^main$ \
-#     --build-config=deploy/cloudbuild.yaml
+#     --build-config=deploy/cloudbuild.yaml \
+#     --substitutions=_IMAGE_TAG=$COMMIT_SHA
 
 substitutions:
   _REGION: europe-north1
   _SERVICE: agentic-ai-engine
   _REPOSITORY: docker
+  # Default tag for manual "gcloud builds submit" runs.
+  # CI triggers should override this with the actual commit SHA:
+  #   --substitutions=_IMAGE_TAG=$COMMIT_SHA
+  _IMAGE_TAG: latest
 
 steps:
   # 1. Build Docker image — reuse the previous :latest layer as cache.
@@ -43,7 +48,7 @@ steps:
     name: gcr.io/cloud-builders/docker
     args:
       - build
-      - --tag=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:${COMMIT_SHA}
+      - --tag=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:${_IMAGE_TAG}
       - --tag=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:latest
       - --cache-from=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:latest
       - --build-arg=BUILDKIT_INLINE_CACHE=1
@@ -60,11 +65,14 @@ steps:
     waitFor: [build]
 
   # 3. Inject the concrete image reference into service.yaml and deploy.
+  #    Note: Cloud Build substitutions are NOT expanded inside `script:` blocks —
+  #    only in `args:`, `env:`, `dir:`, and `entrypoint:`. Pass the image via env:.
   - id: patch-manifest
     name: bash
+    env:
+      - IMAGE=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:${_IMAGE_TAG}
     script: |
-      sed "s|IMAGE_URL|${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:${COMMIT_SHA}|g" \
-        deploy/service.yaml > /workspace/service-patched.yaml
+      sed "s|IMAGE_URL|$IMAGE|g" deploy/service.yaml > /workspace/service-patched.yaml
     waitFor: [push]
 
   - id: deploy
@@ -80,7 +88,7 @@ steps:
     waitFor: [patch-manifest]
 
 images:
-  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:${COMMIT_SHA}
+  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:${_IMAGE_TAG}
   - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:latest
 
 options:
