@@ -293,3 +293,78 @@ Both the **Summarizer** and the **Research Team** will then have access to `fetc
 
 > **Note:** The main application starts without the MCP server. The `fetch_page` tool is only available when `MCP_FETCH_URL` is configured and the server is reachable.
 
+---
+
+## 9. A2A Critic Agent
+
+The Critic agent is a standalone service that evaluates AI-generated summaries using the [Agent-to-Agent (A2A) protocol](https://github.com/a2aproject/A2A). After the Summarizer produces a summary it automatically calls the Critic, which returns a structured quality evaluation.
+
+**What the Critic evaluates:**
+
+| Dimension | Description |
+|---|---|
+| Accuracy | Does the summary faithfully represent the source? |
+| Completeness | Are all key points covered? |
+| Clarity | Is the language easy to understand? |
+| Conciseness | Is it appropriately brief? |
+
+The result is appended to the chat as a **## Critique** section with per-dimension scores (1–10) and actionable improvement suggestions.
+
+### Run with Docker (recommended)
+
+The critic agent uses **Vertex AI** with Application Default Credentials — the same credentials as the main application.
+
+```bash
+# Build the image
+docker build -t a2a-critic ./a2a_agents/critic
+
+# Run on port 8001 — mount your ADC credentials file
+docker run -p 8001:8001 \
+  -v ~/.config/gcloud:/root/.config/gcloud:ro \
+  -e GOOGLE_APPLICATION_CREDENTIALS=/root/.config/gcloud/application_default_credentials.json \
+  -e GOOGLE_CLOUD_PROJECT=<your-project-id> \
+  a2a-critic
+```
+
+### Run locally (without Docker)
+
+```bash
+# No extra env vars needed — inherits your active ADC session
+python a2a_agents/critic/server.py
+```
+
+### Connect the Summarizer agent
+
+Add the following to your `.env` and restart the main application:
+
+```env
+CRITIC_A2A_URL=http://localhost:8001/.well-known/agent.json
+```
+
+The Summarizer will now call the Critic after every summary and display the evaluation inline.
+
+### Deploy to HuggingFace Spaces
+
+1. Create a new **Docker** Space on [huggingface.co/spaces](https://huggingface.co/spaces)
+2. Push the contents of `a2a_agents/critic/` to the Space repository
+3. In the Space **Settings → Secrets**, add:
+   - `GOOGLE_CLOUD_PROJECT` — your GCP project ID
+   - `GOOGLE_CLOUD_LOCATION` — e.g. `europe-north1`
+   - `GOOGLE_APPLICATION_CREDENTIALS_JSON` — the full JSON content of your ADC credentials file
+4. Add a startup line to `server.py` (or a wrapper script) that writes the JSON secret to a file and sets the env var:
+   ```python
+   import json, os, pathlib
+   creds_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON", "")
+   if creds_json:
+       path = pathlib.Path("/tmp/gcloud_credentials.json")
+       path.write_text(creds_json)
+       os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(path)
+   ```
+5. Set `AGENT_URL` to your Space's public URL (e.g. `https://your-name-a2a-critic.hf.space/`)
+6. Update `CRITIC_A2A_URL` in your main app's `.env`:
+   ```env
+   CRITIC_A2A_URL=https://your-name-a2a-critic.hf.space/.well-known/agent.json
+   ```
+
+> **Note:** The main application works without the critic server. The `critique_summary` tool returns a graceful skip message when `CRITIC_A2A_URL` is empty or the server is unreachable.
+

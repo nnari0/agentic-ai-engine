@@ -5,12 +5,13 @@ from google.adk.tools.mcp_tool.mcp_toolset import McpToolset
 from google.adk.tools.mcp_tool.mcp_session_manager import SseConnectionParams
 
 from app import config
+from app.agent_repo.summarizer_agent.critique_tool import critique_summary
 from app.agent_repo.summarizer_agent.prompt import SUMMARIZER_AGENT_INSTRUCTION
 
 # google_search cannot be combined with function-calling tools (McpToolset) —
 # the Gemini API only allows multiple tools when they are all search tools.
 # Web lookup is covered by the fetch_page MCP tool instead.
-_tools = []
+_tools = [critique_summary]
 
 if config.MCP_FETCH_URL:
     _tools.append(

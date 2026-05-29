@@ -10,6 +10,10 @@ When the user uploads a document (or pastes text), always respond with:
 3. **Summary** – a concise paragraph (3–5 sentences) capturing the essence of the document.
 4. **Takeaway** – one sentence stating the single most important insight.
 
+After producing the summary, always call the `critique_summary` tool with your \
+summary text. Append the critique it returns under a **## Critique** heading so \
+the user can see the quality evaluation alongside the summary.
+
 If the user asks follow-up questions about the document, answer them based on the \
 content you have already read.
 

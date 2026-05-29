@@ -37,21 +37,9 @@ This hands-on extends the functionality of the summarizer agent by incorporating
 
 ### Explanation and Further Details:
 This section focuses on the infrastructure and standardization necessary for integrating various tools into AI agents. An MCP (Model Context Protocol) server acts as a standardized interface, allowing AI agents to access diverse tools, data, and capabilities in a consistent manner. The benefits of using an MCP server include preventing custom, one-off integrations, enabling plug-and-play connectivity across different ecosystems, and making agents more modular, scalable, and maintainable. The task specifically involves building an MCP server for fetching web page content and making this functionality available to the summarizer agent. The server architecture for `fetch_url()` illustrates how an agent interacts with the MCP server, which then uses an HTTP client (`httpx`) to retrieve data from external web pages.
-
 ---
 
-## Hands-On 4: Investigate State and Session
-
-### Clear Instructions:
-*   Save and load state variables.
-*   Log and investigate the session.
-
-### Explanation and Further Details:
-This hands-on delves into the concepts of short-term memory through "sessions" and "state" within an agentic AI system. A session acts as a container for a single user-agent conversation, maintaining a chronological list of interactions (user messages, agent responses, tool actions) and the current state. The state, described as the agent's dedicated "scratchpad," stores serializable key-value pairs to personalize interactions, track task progress, accumulate information, and make informed decisions. This exercise focuses on understanding how to manage this short-term memory by saving, loading, logging, and investigating the variables and flow within a session.
-
----
-
-## Hands-On 5: Design an AI Agent Team
+## Hands-On 4: Design an AI Agent Team
 
 ### Clear Instructions:
 *   Think about a use case for an agent team.
@@ -63,7 +51,7 @@ Moving beyond single agents, this hands-on task introduces the concept of multi-
 
 ---
 
-## Hands-On 6: Communicate with External Agent
+## Hands-On 5: Communicate with External Agent
 
 ### Clear Instructions:
 *   Get an overview of the Python library "A2A".
@@ -74,6 +62,17 @@ Moving beyond single agents, this hands-on task introduces the concept of multi-
 
 ### Explanation and Further Details:
 This hands-on focuses on enabling communication and interoperability between "external" agents using an A2A (Agent-to-Agent) protocol. The A2A protocol aims to transform isolated agent systems into a connected and interoperable network. Key benefits include facilitating agent-to-agent communication across system boundaries, integrating with external services and platforms, standardizing task and context exchange, enabling decoupled integration, and ensuring secure communication. Typical use cases include collaborating with third-party agents, integrating domain-specific expert agents, and extending internal agent teams with external capabilities. For this task, participants will build and deploy an independent evaluation or critique agent (e.g., on HuggingFace) to assess the performance of the previously built summarizer agent, showcasing external agent interaction.
+
+---
+
+## Hands-On 6: Investigate State and Session
+
+### Clear Instructions:
+*   Save and load state variables.
+*   Log and investigate the session.
+
+### Explanation and Further Details:
+This hands-on delves into the concepts of short-term memory through "sessions" and "state" within an agentic AI system. A session acts as a container for a single user-agent conversation, maintaining a chronological list of interactions (user messages, agent responses, tool actions) and the current state. The state, described as the agent's dedicated "scratchpad," stores serializable key-value pairs to personalize interactions, track task progress, accumulate information, and make informed decisions. This exercise focuses on understanding how to manage this short-term memory by saving, loading, logging, and investigating the variables and flow within a session.
 
 ---
 
