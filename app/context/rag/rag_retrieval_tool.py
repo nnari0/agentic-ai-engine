@@ -1,41 +1,68 @@
-"""RAG retrieval tool – builds a VertexAiRagRetrieval from the configured corpus.
+"""RAG retrieval tool – plain async function wrapping rag.retrieval_query().
 
-``VertexAiRagRetrieval`` integrates with Gemini 2+ as a native server-side
-retrieval tool (injected via ``types.Tool(retrieval=...)``) so no extra
-function-call round-trip is needed.  For older models it falls back to a
-regular function declaration.
+Design note
+-----------
+The ADK's ``VertexAiRagRetrieval`` injects a native ``types.Tool(retrieval=…)``
+into the Gemini API request for Gemini 2+ models.  The Gemini API does **not**
+allow mixing a retrieval tool with function-calling tools in the same request,
+so any agent that also has tools like ``save_artifact`` or ``critique_summary``
+will receive a 400 INVALID_ARGUMENT error.
 
-Call ``get_rag_retrieval_tool()`` once per agent definition.  It triggers
-lazy corpus initialisation and returns ``None`` when RAG is unavailable so
-callers can simply filter it out of the tools list.
+Using a plain ``async def`` instead keeps everything as function declarations
+and avoids the mixing constraint entirely.  The retrieval still hits the same
+Vertex AI RAG corpus — the only difference is that it goes through a function
+call rather than a server-side grounding pass.
 """
 
 from __future__ import annotations
 
+import asyncio
+
 import structlog
-from google.adk.tools.retrieval import VertexAiRagRetrieval
 
 from app.context.rag.rag_engine_handler import rag_engine_handler
 
 logger = structlog.get_logger(__name__)
 
 
-def get_rag_retrieval_tool() -> VertexAiRagRetrieval | None:
-    """Return a configured VertexAiRagRetrieval tool, or None if RAG is unavailable."""
+async def retrieve_from_corpus(query: str) -> str:
+    """Search the internal knowledge-base corpus and return the most relevant chunks.
+
+    Query the Vertex AI RAG corpus for text chunks semantically similar to
+    *query*.  Use this before fetching external web pages — if sufficient
+    information already exists in the corpus an extra web request can be
+    avoided.
+
+    Args:
+        query: Natural-language search query describing the information needed.
+
+    Returns:
+        Numbered list of the most relevant text chunks, or a message stating
+        that no relevant content was found.
+    """
     corpus_name = rag_engine_handler.corpus_name
     if not corpus_name:
-        logger.warning("RAG corpus unavailable – skipping RAG retrieval tool")
-        return None
-    logger.info("RAG retrieval tool created", corpus=corpus_name)
-    return VertexAiRagRetrieval(
-        name="retrieve_from_corpus",
-        description=(
-            "Search the internal knowledge-base corpus for documents relevant "
-            "to the query.  Use this first before fetching external web pages – "
-            "if the answer already exists in the corpus you can avoid an extra "
-            "web request.  Returns the most relevant text chunks."
-        ),
-        rag_corpora=[corpus_name],
-        similarity_top_k=5,
-        vector_distance_threshold=0.5,
-    )
+        return "RAG corpus is not available – skipping corpus search."
+
+    try:
+        from vertexai.preview import rag
+
+        response = await asyncio.to_thread(
+            rag.retrieval_query,
+            text=query,
+            rag_corpora=[corpus_name],
+            similarity_top_k=5,
+            vector_distance_threshold=0.5,
+        )
+
+        contexts = response.contexts.contexts
+        if not contexts:
+            return f"No relevant content found in the corpus for query: '{query}'"
+
+        chunks = [f"{i + 1}. {ctx.text.strip()}" for i, ctx in enumerate(contexts)]
+        logger.info("RAG retrieval complete", query=query, chunks=len(chunks))
+        return "\n\n".join(chunks)
+
+    except Exception as e:
+        logger.warning("RAG retrieval failed", query=query, error=str(e))
+        return f"Corpus search failed: {e}"

@@ -12,19 +12,14 @@ from google.adk.tools.mcp_tool.mcp_toolset import McpToolset
 from app import config
 from app.agent_repo.orchestrator.prompt import REPORT_WRITER_INSTRUCTION, WEB_RESEARCHER_INSTRUCTION
 from app.context.artifacts.artifact_tools import save_artifact, list_artifacts
-from app.context.rag.rag_retrieval_tool import get_rag_retrieval_tool
+from app.context.rag.rag_retrieval_tool import retrieve_from_corpus
 
 # fetch_page is only available when the MCP Fetch server is running.
-_researcher_tools = []
+_researcher_tools = [retrieve_from_corpus]
 if config.MCP_FETCH_URL:
     _researcher_tools.append(
         McpToolset(connection_params=SseConnectionParams(url=config.MCP_FETCH_URL))
     )
-
-# RAG retrieval is optional – skipped when the corpus is not configured.
-_rag_tool = get_rag_retrieval_tool()
-if _rag_tool:
-    _researcher_tools.append(_rag_tool)
 
 researcher_agent = LlmAgent(
     name="researcher_agent",
