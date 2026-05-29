@@ -24,15 +24,18 @@ async def get_agents() -> dict:
 
 @agent_router.get("/artifacts")
 async def get_artifacts(agent_id: str = Query(..., description="Agent ID")) -> dict:
-    """Return all artifact filenames for the given agent's current session."""
+    """Return all artifact filenames for the given agent.
+
+    User-scoped artifacts (``user:`` prefix) are always included and survive
+    session resets.  Session-scoped artifacts are included when a session is
+    active.
+    """
     app_name = f"{agent_id}_app"
     session_id = session_handler._agent_session_mapping.get(agent_id)
-    if not session_id:
-        return {"artifacts": []}
     keys = await artifact_service_handler.service.list_artifact_keys(
         app_name=app_name,
         user_id=config.USER_ID,
-        session_id=session_id,
+        session_id=session_id,  # None is safe: GCS skips session prefix and still returns user-scoped files
     )
     return {"artifacts": keys}
 
@@ -45,13 +48,11 @@ async def download_artifact(
     """Download a single artifact by filename."""
     app_name = f"{agent_id}_app"
     session_id = session_handler._agent_session_mapping.get(agent_id)
-    if not session_id:
-        return Response(content="No session found", status_code=404)
 
     part = await artifact_service_handler.service.load_artifact(
         app_name=app_name,
         user_id=config.USER_ID,
-        session_id=session_id,
+        session_id=session_id,  # ignored for user: prefixed filenames
         filename=filename,
     )
     if part is None:
@@ -66,10 +67,11 @@ async def download_artifact(
     else:
         return Response(content="Artifact has no content", status_code=404)
 
+    display_name = filename.removeprefix("user:")
     return Response(
         content=data,
         media_type=mime,
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={"Content-Disposition": f'attachment; filename="{display_name}"'},
     )
 
 

@@ -166,13 +166,14 @@ function renderArtifactList(artifacts) {
     return;
   }
   artifacts.forEach(function (name) {
+    var displayName = name.startsWith("user:") ? name.slice(5) : name;
     var item = document.createElement("a");
     item.className = "artifact-item";
     item.href = "/api/v1/artifacts/download?agent_id=" + encodeURIComponent(selectedAgentId) + "&filename=" + encodeURIComponent(name);
-    item.download = name;
+    item.download = displayName;
     item.innerHTML =
-      '<span class="artifact-icon">' + artifactIcon(name) + '</span>' +
-      '<span class="artifact-name" title="' + escapeHtml(name) + '">' + escapeHtml(name) + '</span>' +
+      '<span class="artifact-icon">' + artifactIcon(displayName) + '</span>' +
+      '<span class="artifact-name" title="' + escapeHtml(displayName) + '">' + escapeHtml(displayName) + '</span>' +
       '<span class="artifact-download">⬇</span>';
     artifactListEl.appendChild(item);
   });

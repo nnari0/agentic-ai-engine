@@ -5,6 +5,14 @@ as a parameter typed as ``ToolContext``.  The artifact service wired into the
 runner persists files in Google Cloud Storage; each file is versioned, and
 load/list operations always return the most-recent version unless specified.
 
+All artifacts are stored with the ``user:`` namespace prefix, which means they
+are scoped to the user rather than the session.  A file saved in one session is
+visible and loadable in every subsequent session for the same user.
+
+GCS path layout:
+  user-scoped  →  {app_name}/{user_id}/user/{filename}/{version}
+  (session-scoped would be {app_name}/{user_id}/{session_id}/{filename}/{version})
+
 Supported formats
 -----------------
 Markdown (.md, .txt)  – stored as UTF-8 text via ``types.Part.from_text``
@@ -20,12 +28,19 @@ from google.genai import types
 
 logger = structlog.get_logger(__name__)
 
+_USER_PREFIX = "user:"
+
+
+def _user_scoped(filename: str) -> str:
+    """Return filename with the user: namespace prefix (idempotent)."""
+    return filename if filename.startswith(_USER_PREFIX) else f"{_USER_PREFIX}{filename}"
+
 
 async def save_artifact(filename: str, content: str, tool_context: ToolContext) -> str:
-    """Save text content as a named artifact in Google Cloud Storage.
+    """Save text content as a user-scoped artifact in Google Cloud Storage.
 
-    Use this to persist a Markdown report or any plain-text document so that
-    it appears in the Artifacts panel and can be downloaded by the user.
+    The artifact is stored under the ``user:`` namespace so it persists across
+    session resets and is visible in the Artifacts panel in every session.
 
     Args:
         filename: File name including extension, e.g. ``"report.md"`` or
@@ -35,20 +50,20 @@ async def save_artifact(filename: str, content: str, tool_context: ToolContext) 
     Returns:
         Confirmation message with the assigned version number.
     """
+    scoped = _user_scoped(filename)
     part = types.Part.from_text(text=content)
-    version = await tool_context.save_artifact(filename=filename, artifact=part)
-    logger.info("Artifact saved", filename=filename, version=version)
+    version = await tool_context.save_artifact(filename=scoped, artifact=part)
+    logger.info("Artifact saved", filename=scoped, version=version)
     return f"Artifact '{filename}' saved (version {version})."
 
 
 async def save_pdf_artifact(
     filename: str, content_base64: str, tool_context: ToolContext
 ) -> str:
-    """Save a PDF document as a named artifact in Google Cloud Storage.
+    """Save a PDF document as a user-scoped artifact in Google Cloud Storage.
 
     The content must be supplied as a base64-encoded string of the raw PDF
-    bytes.  This is useful when an upstream tool returns PDF data encoded
-    in base64.
+    bytes.  The artifact persists across session resets.
 
     Args:
         filename:       File name, e.g. ``"report.pdf"``.
@@ -57,27 +72,32 @@ async def save_pdf_artifact(
     Returns:
         Confirmation message with the assigned version number.
     """
+    scoped = _user_scoped(filename)
     data = base64.b64decode(content_base64)
     part = types.Part.from_bytes(data=data, mime_type="application/pdf")
-    version = await tool_context.save_artifact(filename=filename, artifact=part)
-    logger.info("PDF artifact saved", filename=filename, version=version)
+    version = await tool_context.save_artifact(filename=scoped, artifact=part)
+    logger.info("PDF artifact saved", filename=scoped, version=version)
     return f"PDF artifact '{filename}' saved (version {version})."
 
 
 async def load_artifact(filename: str, tool_context: ToolContext) -> str:
     """Load a previously saved artifact and return its text content.
 
+    Looks up the artifact under the ``user:`` namespace first (user-scoped),
+    then falls back to a plain session-scoped lookup for backwards compatibility.
     For binary artifacts (e.g. PDFs) a short description is returned instead
-    of the raw bytes, since raw binary cannot be embedded in a text response.
+    of the raw bytes.
 
     Args:
-        filename: Name of the artifact to load (must match a name returned by
-                  ``list_artifacts``).
+        filename: Base file name (with or without the ``user:`` prefix).
 
     Returns:
         Text content of the artifact, or a descriptive message for binary files.
     """
-    part = await tool_context.load_artifact(filename=filename)
+    scoped = _user_scoped(filename)
+    part = await tool_context.load_artifact(filename=scoped)
+    if part is None:
+        part = await tool_context.load_artifact(filename=filename)
     if part is None:
         return f"Artifact '{filename}' not found."
     if part.text:
@@ -93,7 +113,7 @@ async def load_artifact(filename: str, tool_context: ToolContext) -> str:
 
 
 async def list_artifacts(tool_context: ToolContext) -> str:
-    """List all artifact filenames saved in the current session.
+    """List all user-scoped artifact filenames (visible across all sessions).
 
     Returns:
         Bullet list of filenames, or a message if none have been saved yet.
@@ -101,5 +121,6 @@ async def list_artifacts(tool_context: ToolContext) -> str:
     names = await tool_context.list_artifacts()
     logger.info("Artifacts listed", count=len(names))
     if not names:
-        return "No artifacts saved in this session yet."
-    return "Saved artifacts:\n" + "\n".join(f"- {n}" for n in names)
+        return "No artifacts saved yet."
+    display = [n[len(_USER_PREFIX):] if n.startswith(_USER_PREFIX) else n for n in names]
+    return "Saved artifacts:\n" + "\n".join(f"- {n}" for n in display)
