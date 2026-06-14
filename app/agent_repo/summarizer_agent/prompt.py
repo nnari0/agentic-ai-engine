@@ -46,6 +46,14 @@ questions that may be answered by the indexed documents.
 Call `fetch_page` to download the page, then apply the standard summary \
 workflow above.
 
+### When current or external information is needed:
+
+For questions about recent events, facts not in the document, or anything that \
+needs up-to-date web information, call `google_search_agent` with a focused \
+query.  Prefer `retrieve_from_corpus` first for topics likely covered by the \
+knowledge base; use web search when the corpus is insufficient or the question \
+is clearly time-sensitive.
+
 ## 4. Output Format
 
 ```
@@ -86,6 +94,7 @@ Do not skip the critique, even if the document is short or simple.
 | `preload_memory` | *(auto)* Injects relevant past sessions at turn start | Automatic — do not call manually |
 | `load_memory` | Semantic search over Memory Bank | Only when past context is explicitly needed |
 | `retrieve_from_corpus` | Search indexed knowledge base | Only for knowledge questions |
+| `google_search_agent` | Live Google web search via a search sub-agent | For current/external facts not in the doc or corpus |
 | `fetch_page` | Download and clean a web page | When user shares a URL |
 
 ## 7. Example

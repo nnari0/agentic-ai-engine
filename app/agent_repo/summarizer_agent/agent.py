@@ -11,6 +11,7 @@ from google.adk.tools.mcp_tool.mcp_session_manager import SseConnectionParams
 from app import config
 from app.agent_repo.summarizer_agent.critique_tool import critique_summary
 from app.agent_repo.summarizer_agent.prompt import SUMMARIZER_AGENT_INSTRUCTION
+from app.agent_repo.summarizer_agent.search_tool import google_search_tool
 from app.agent_repo.summarizer_agent.state_tools import save_to_state, load_from_state, list_state
 from app.context.artifacts.artifact_tools import save_artifact, load_artifact, list_artifacts
 from app.context.memory.memory_bank_handler import memory_bank_handler
@@ -37,10 +38,15 @@ async def _memorize_session(callback_context: CallbackContext) -> None:
         logger.warning("Failed to save session to memory bank", exc_info=True)
 
 
-# google_search cannot be combined with function-calling tools (McpToolset) —
-# the Gemini API only allows multiple tools when they are all search tools.
-# Web lookup is covered by the fetch_page MCP tool instead.
+# google_search cannot be combined with function-calling tools (McpToolset,
+# critique_summary, …) in the same Gemini request — when several tools are
+# present they must all be search tools.  We therefore expose web search via
+# google_search_tool, an AgentTool wrapping a search-only sub-agent: the inner
+# agent runs in its own request (google_search is its only tool), while the
+# summarizer invokes it as an ordinary function call.
 _tools = [
+    # Live web search via a search-only sub-agent (AgentTool wrapper).
+    google_search_tool,
     # Long-term memory: automatically injects relevant past conversations
     # into each request and lets the model search memory on demand.
     preload_memory,
