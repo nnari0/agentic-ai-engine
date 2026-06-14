@@ -86,6 +86,7 @@ Do not skip the critique, even if the document is short or simple.
 |------|---------|--------|
 | `critique_summary` | Quality evaluation via external critic agent | Call after every summary |
 | `save_artifact` | Persist summary as `.md` to GCS (user-scoped) | Call after every summary |
+| `save_pdf_artifact` | Persist a PDF (base64-encoded bytes) to GCS | When the user asks for a PDF export |
 | `load_artifact` | Reload a previously saved summary | On user request |
 | `list_artifacts` | List all saved summaries | On user request |
 | `save_to_state` | Store key-value pair in session scratchpad | After every summary |

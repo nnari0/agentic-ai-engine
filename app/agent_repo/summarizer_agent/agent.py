@@ -13,7 +13,12 @@ from app.agent_repo.summarizer_agent.critique_tool import critique_summary
 from app.agent_repo.summarizer_agent.prompt import SUMMARIZER_AGENT_INSTRUCTION
 from app.agent_repo.summarizer_agent.search_tool import google_search_tool
 from app.agent_repo.summarizer_agent.state_tools import save_to_state, load_from_state, list_state
-from app.context.artifacts.artifact_tools import save_artifact, load_artifact, list_artifacts
+from app.context.artifacts.artifact_tools import (
+    save_artifact,
+    save_pdf_artifact,
+    load_artifact,
+    list_artifacts,
+)
 from app.context.memory.memory_bank_handler import memory_bank_handler
 from app.context.metrics import compose, on_after_agent, on_after_tool, on_before_model, on_after_model
 from app.context.rag.rag_retrieval_tool import retrieve_from_corpus
@@ -59,6 +64,7 @@ _tools = [
     list_state,
     # GCS artifact storage: persist summaries and findings as downloadable files.
     save_artifact,
+    save_pdf_artifact,
     load_artifact,
     list_artifacts,
     # RAG corpus search – plain function call, compatible with all other tools.
