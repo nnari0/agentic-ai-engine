@@ -709,26 +709,35 @@ The Summarizer agent ships with a set of **eval cases** that can be run through 
 | `knowledge_base_query` | "What does the knowledge base say about RAG?" | `retrieve_from_corpus` |
 | `list_saved_summaries` | "What summaries have you saved?" | `list_artifacts` |
 
-Eval files are located in `app/agent_repo/summarizer_agent/evals/`.
+The eval set lives next to the agent at `app/agent_repo/summarizer_agent/summarizer_eval_set.evalset.json`. ADK's web UI only lists `*.evalset.json` files that sit directly inside an agent's own directory.
+
+> **`PYTHONPATH=.` is required.** The agents use absolute imports (`from app...`), but ADK's loader only puts the *agents directory* on `sys.path`, not the project root. Exporting `PYTHONPATH=.` (the project root) makes the `app` package importable. Without it you get `ModuleNotFoundError: No module named 'app'`.
+
+The agents directory is `app/agent_repo/` — its sub-folders (`greeting_agent`, `orchestrator`, `summarizer_agent`) are the agents ADK discovers.
 
 ### Run via the ADK web UI
 
 ```bash
-adk web app/
+PYTHONPATH=. adk web app/agent_repo
 ```
 
-Open **http://localhost:8000**, select the **Summarizer** agent, and click the **Evals** tab. Select `summarizer_eval_set` and click **Run**.
+Open **http://localhost:8000**, select the **summarizer_agent** agent, and click the **Evals** tab. Select `summarizer_eval_set` and click **Run**.
+
+> **Note on `response_match_score`:** this metric scores the agent's final response against the reference text using ROUGE-1, which only measures word overlap. Since the LLM rephrases freely (e.g. "No summaries have been saved yet." vs. "I haven't saved any summaries yet."), scores typically land around 0.3–0.5 even for a correct answer. Before clicking **Run**, open the eval config (gear icon) and lower the **response_match_score** threshold to around `0.3` — `tool_trajectory_avg_score` (which checks the actual tool calls) can stay at `1.0`.
 
 ### Run via the CLI
 
 ```bash
-adk eval app/agent_repo/summarizer_agent \
-  app/agent_repo/summarizer_agent/evals/summarizer_eval_set.json
+PYTHONPATH=. adk eval app/agent_repo/summarizer_agent \
+  app/agent_repo/summarizer_agent/summarizer_eval_set.evalset.json \
+  --config_file_path=app/agent_repo/summarizer_agent/test_config.json
 ```
+
+`test_config.json` lowers the `response_match_score` threshold to `0.3` for the reason explained above; `tool_trajectory_avg_score` stays at the default `1.0`.
 
 ### Adding new eval cases
 
-Open `app/agent_repo/summarizer_agent/evals/summarizer_eval_set.json` and append a new object to `eval_cases`. Each case needs:
+Open `app/agent_repo/summarizer_agent/summarizer_eval_set.evalset.json` and append a new object to `eval_cases`. Each case needs:
 
 - `eval_id` — unique string identifier
 - `conversation` — list of turns, each with `user_content` and optionally `final_response` and `intermediate_data.tool_uses`

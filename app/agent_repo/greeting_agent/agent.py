@@ -15,3 +15,6 @@ greeting_agent = LlmAgent(
     before_model_callback=on_before_model,
     after_model_callback=on_after_model,
 )
+
+# Exposed under ``root_agent`` so ADK's CLI/web loader can discover it.
+root_agent = greeting_agent

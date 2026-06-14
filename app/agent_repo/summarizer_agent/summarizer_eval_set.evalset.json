@@ -92,7 +92,7 @@
             "role": "model",
             "parts": [
               {
-                "text": "Here are the summaries saved so far:"
+                "text": "It looks like no summaries have been saved yet."
               }
             ]
           },

@@ -79,3 +79,8 @@ summarizer_agent = LlmAgent(
     before_model_callback=on_before_model,
     after_model_callback=on_after_model,
 )
+
+# ADK's CLI/web agent loader discovers the entry-point agent through a
+# module-level attribute named ``root_agent``. Expose the summarizer under
+# that name so `adk web` and `adk eval` can load it.
+root_agent = summarizer_agent
